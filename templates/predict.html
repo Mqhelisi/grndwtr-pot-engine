@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Predict — Groundwater Potential Mapping System{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+{% endblock %}
+
+{% block content %}
+
+  <div class="card">
+    <h1>🔮 Predict Groundwater Potential</h1>
+    <p class="lead">Detect your location, select the predictor values, and run the model.</p>
+  </div>
+
+  <!-- ============== GPS PANEL ============== -->
+  <div class="card">
+    <h2>📍 Detect your location</h2>
+    <p class="muted">Click the button, allow your browser's location prompt, then save the fix if you'd like to keep it.</p>
+
+    <div class="btn-row">
+      <button id="btn-detect" class="btn">📍 Detect My Location</button>
+    </div>
+
+    <div id="gps-status" class="gps-status">Click <em>Detect My Location</em> to begin.</div>
+    <div id="gps-coords" class="gps-coords"></div>
+
+    <div id="map"></div>
+
+    <div id="save-form" class="save-form">
+      <label for="save-label">Optional label for this location</label>
+      <div class="row">
+        <input type="text" id="save-label" maxlength="200"
+               placeholder="e.g. Site A — Bulawayo north">
+        <button id="btn-save-location" class="btn btn-secondary">💾 Save this location</button>
+      </div>
+      <div id="save-toast" class="save-toast"></div>
+    </div>
+  </div>
+
+  <!-- ============== PREDICTOR FORM ============== -->
+  <div class="card">
+    <h2>🧩 Predictor inputs</h2>
+
+    {% if not ml_ready %}
+      <div class="alert error">
+        Model artifacts are not all loaded. Check the files in <code>artifacts/</code>.
+      </div>
+    {% elif not predictors %}
+      <div class="alert error">
+        No predictor columns found in the dataset.
+      </div>
+    {% else %}
+      <p class="muted">Select values for the predictors:</p>
+
+      <div id="predictor-grid" class="predictor-grid">
+        {% for feature, options in predictors.items() %}
+          <div>
+            <label for="feat-{{ loop.index }}">🔸 {{ feature }}</label>
+            <select id="feat-{{ loop.index }}" data-feature="{{ feature }}">
+              {% for opt in options %}
+                <option value="{{ opt }}">{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-predict" class="btn">✨ Predict Potential</button>
+      </div>
+
+      <div id="predict-error" class="alert error" style="display:none;"></div>
+      <div id="result" class="result"></div>
+    {% endif %}
+  </div>
+
+{% endblock %}
+
+{% block body_extra %}
+  <script src="{{ url_for('static', filename='js/geo.js')     }}"></script>
+  <script src="{{ url_for('static', filename='js/predict.js') }}"></script>
+{% endblock %}

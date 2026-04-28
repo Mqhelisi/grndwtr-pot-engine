@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Groundwater Potential Mapping System{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <div class="layout">
+
+    <aside class="sidebar">
+      <h2>🌍 Navigation</h2>
+      <nav>
+        <a href="{{ url_for('home')              }}" class="{{ 'active' if page == 'home'           else '' }}">🏠 Home</a>
+        <a href="{{ url_for('predict_page')      }}" class="{{ 'active' if page == 'predict'        else '' }}">🔮 Predict</a>
+        <a href="{{ url_for('model_info_page')   }}" class="{{ 'active' if page == 'model-info'     else '' }}">🧠 Model Info</a>
+        <a href="{{ url_for('feature_guide_page')}}" class="{{ 'active' if page == 'feature-guide'  else '' }}">📘 Feature Guide</a>
+        <a href="{{ url_for('about_page')        }}" class="{{ 'active' if page == 'about'          else '' }}">ℹ️ About</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+  {% block body_extra %}{% endblock %}
+</body>
+</html>

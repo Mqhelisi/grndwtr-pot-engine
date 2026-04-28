@@ -1,0 +1,311 @@
+/* ============================================================================
+   Groundwater Potential Mapping System — stylesheet
+   Dark + gold "African luxury" theme, recreated from the original Streamlit
+   styling so the look the client built is preserved on the new architecture.
+   ============================================================================ */
+
+/* ---------- Design tokens (single place to change colours/spacing) -------- */
+:root {
+  --bg-base:      #0b0b0b;
+  --bg-card:      #131313;
+  --bg-card-2:    #1a1a1a;
+  --gold:         #f5c77a;
+  --gold-bright:  #ffd98e;
+  --gold-soft:    rgba(245, 199, 122, 0.20);
+  --gold-glow:    rgba(245, 199, 122, 0.40);
+  --text:         #f5c77a;
+  --text-mute:    #b8a785;
+  --text-on-gold: #1a1a1a;
+  --danger:       #e25c5c;
+  --success:      #6dbf73;
+  --radius:       14px;
+  --radius-lg:    18px;
+  --gap:          1.25rem;
+}
+
+/* ---------- Reset-ish ---------------------------------------------------- */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-base);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+/* ---------- Layout: sidebar + main --------------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: linear-gradient(180deg, #0e0e0e, #050505);
+  border-right: 1px solid var(--gold-soft);
+  padding: 2rem 1.25rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  margin: 0 0 1.5rem 0;
+  color: var(--gold);
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.sidebar nav { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.sidebar nav a {
+  display: flex; align-items: center; gap: 0.65rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  color: var(--text-mute);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+.sidebar nav a:hover {
+  color: var(--gold);
+  background: rgba(245, 199, 122, 0.05);
+  border-color: var(--gold-soft);
+}
+.sidebar nav a.active {
+  color: var(--text-on-gold);
+  background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+  border-color: var(--gold);
+  box-shadow: 0 0 14px var(--gold-glow);
+}
+
+.main {
+  padding: 2rem 2.5rem 4rem 2.5rem;
+  max-width: 1200px;
+}
+
+/* ---------- Card: the dark/gold container reused everywhere ------------- */
+.card {
+  background: linear-gradient(145deg, var(--bg-card), var(--bg-card-2));
+  border: 1px solid var(--gold-soft);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  margin-bottom: var(--gap);
+  box-shadow: 0 0 25px rgba(245, 199, 122, 0.10);
+}
+
+h1, h2, h3, h4 {
+  color: var(--gold);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-top: 0;
+}
+h1 { font-size: 1.9rem; margin-bottom: 0.75rem; }
+h2 { font-size: 1.4rem; margin-bottom: 0.6rem; }
+h3 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+
+p, li { color: var(--text-mute); }
+p { margin: 0.4rem 0 0.9rem 0; }
+
+a { color: var(--gold-bright); }
+
+hr {
+  border: none;
+  border-top: 1px solid var(--gold-soft);
+  margin: 1.5rem 0;
+}
+
+/* ---------- Forms -------------------------------------------------------- */
+label {
+  display: block;
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: 0.75rem 0 0.35rem 0;
+}
+
+select, input[type="text"], textarea {
+  width: 100%;
+  background: #0f0f0f;
+  color: #fff;
+  border: 1px solid var(--gold-soft);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+select:focus, input[type="text"]:focus, textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(245, 199, 122, 0.15);
+}
+
+/* ---------- Buttons ------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+  color: var(--text-on-gold);
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.35rem;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 0 15px var(--gold-glow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+.btn:hover:not(:disabled) {
+  transform: scale(1.03);
+  box-shadow: 0 0 22px rgba(245, 199, 122, 0.6);
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  box-shadow: none;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(245, 199, 122, 0.08);
+  box-shadow: 0 0 14px rgba(245, 199, 122, 0.25);
+}
+
+.btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; }
+
+/* ---------- GPS panel --------------------------------------------------- */
+.gps-status {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-mute);
+  min-height: 1.4em;
+}
+.gps-status.ok      { color: var(--success); }
+.gps-status.error   { color: var(--danger); }
+.gps-coords {
+  margin-top: 0.75rem;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 1.05rem;
+  color: var(--gold-bright);
+  background: rgba(245, 199, 122, 0.06);
+  border: 1px solid var(--gold-soft);
+  padding: 0.6rem 0.85rem;
+  border-radius: 10px;
+  display: none;            /* shown via JS once a fix is acquired */
+}
+
+#map {
+  width: 100%;
+  height: 360px;
+  margin-top: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--gold-soft);
+  background: #0e0e0e;
+}
+
+/* Save form (lives below the map, hidden until coords exist) */
+.save-form { margin-top: 1rem; display: none; }
+.save-form .row { display: flex; gap: 0.6rem; align-items: stretch; }
+.save-form input[type="text"] { flex: 1; }
+.save-toast {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--success);
+  min-height: 1.2em;
+}
+
+/* ---------- Predictor form grid ----------------------------------------- */
+.predictor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* ---------- Prediction result panel ------------------------------------ */
+.result {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--gold-soft);
+  display: none;            /* shown by JS after a successful prediction */
+}
+.result.high {
+  background: rgba(109, 191, 115, 0.08);
+  border-color: rgba(109, 191, 115, 0.35);
+}
+.result.low {
+  background: rgba(226, 92, 92, 0.08);
+  border-color: rgba(226, 92, 92, 0.35);
+}
+.result h3 { margin-bottom: 0.75rem; }
+.result.high h3 { color: var(--success); }
+.result.low  h3 { color: var(--danger); }
+
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.metric {
+  background: var(--bg-card-2);
+  border: 1px solid var(--gold-soft);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+}
+.metric .label { color: var(--text-mute); font-size: 0.85rem; font-weight: 600; }
+.metric .value { color: var(--gold-bright); font-size: 1.6rem; font-weight: 800; margin-top: 0.25rem; }
+
+/* ---------- Feature Guide ---------------------------------------------- */
+.feature-block { margin-bottom: 1.25rem; }
+.feature-block h3 { margin-bottom: 0.35rem; }
+.feature-values {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.feature-values .pill {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(245, 199, 122, 0.08);
+  border: 1px solid var(--gold-soft);
+  border-radius: 999px;
+  color: var(--text-mute);
+}
+
+/* ---------- Misc -------------------------------------------------------- */
+.muted { color: var(--text-mute); }
+.lead  { font-size: 1.05rem; color: var(--text-mute); }
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid;
+  margin: 0.5rem 0 1rem 0;
+}
+.alert.error { color: var(--danger); border-color: rgba(226, 92, 92, 0.35); background: rgba(226, 92, 92, 0.08); }
+.alert.info  { color: var(--text-mute); border-color: var(--gold-soft); background: rgba(245, 199, 122, 0.05); }
+
+/* ---------- Responsive: stack the sidebar on top on small screens ------ */
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; }
+  .sidebar nav { flex-direction: row; flex-wrap: wrap; }
+  .main { padding: 1.25rem 1.25rem 3rem 1.25rem; }
+  #map { height: 300px; }
+  .metrics { grid-template-columns: 1fr; }
+}
+
+/* Leaflet's default link colour clashes with our palette — gentle override */
+.leaflet-container a { color: var(--gold-bright) !important; }

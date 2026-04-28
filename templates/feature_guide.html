@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Feature Guide — Groundwater Potential Mapping System{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <h1>📘 Feature Guide</h1>
+    <p class="lead">Every feature used by the model and the values it can take, drawn from the training dataset.</p>
+
+    {% if not features %}
+      <div class="alert error">Dataset not available. Check <code>augmented_data.csv</code>.</div>
+    {% else %}
+      {% for name, values in features %}
+        <div class="feature-block">
+          <h3>{{ name }}</h3>
+          {% if values %}
+            <p class="muted">Possible values:</p>
+            <div class="feature-values">
+              {% for v in values %}
+                <span class="pill">{{ v }}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">Column not found in loaded dataset, or no values available.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Model Info — Groundwater Potential Mapping System{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <h1>🧠 Model Information</h1>
+
+    <p><strong>Model:</strong> Support Vector Machine (SVM)</p>
+    <p><strong>Feature Selection:</strong> Boruta</p>
+    <p><strong>Scaling:</strong> StandardScaler</p>
+    <p><strong>Encoding:</strong> OrdinalEncoder</p>
+
+    <hr>
+
+    <h2>Selected Predictors</h2>
+    {% if selected_features %}
+      <ul>
+        {% for f in selected_features %}
+          <li>{{ f }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="alert error">Selected feature list is not available. Check <code>selected_features.pkl</code>.</div>
+    {% endif %}
+  </div>
+{% endblock %}
