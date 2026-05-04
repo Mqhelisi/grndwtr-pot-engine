@@ -1,33 +1,32 @@
 /* ============================================================================
    GPS detection + map + hydrogeology lookup.
    --------------------------------------------------------------------------
-   Updates window.__surveyState. Also auto-fills the "Geological Features"
-   predictor dropdown using the BGS-suggested model class (Granite or
-   Limestone), so the surveyor can either accept the suggestion or
-   override it via the toggle in the Hydrogeology card.
+   Updates window.__surveyState. Auto-fills the (now hidden) "Geological
+   Features" predictor using the BGS-suggested model class so the form
+   remains complete without asking the user to pick the value. The user
+   sees a read-only display of the inferred geology in the predictor card.
 
-   The /api/hydrogeology response shape is now richer — see
-   hydrogeology.lookup() in the Python module:
+   /api/hydrogeology response shape:
        {
          status: "ok"|"out_of_coverage"|"surface_water"|"not_configured",
          raw_glg, raw_hg_code, model_class, remap_confidence,
          remap_flag, remap_rationale, bgs_aquifer_type,
          bgs_baseline_yield, bgs_baseline_yield_lps,
-         features: [...],   // raw shapefile attributes
+         features: [...],
          summary: "..."
        }
    ============================================================================ */
 
 window.__surveyState = window.__surveyState || {
-  gps:             null,
-  hydro:           null,    // the FULL response object (for the saved record)
-  predictors:      null,
-  inferred:        {},
-  inferred_count:  0,
-  supplementary:   {},
-  land_use:        {},
-  geo_override:    null,
-  prediction:      null,
+  gps:               null,
+  hydro:             null,
+  predictors:        null,
+  inferred:          {},
+  inferred_count:    0,
+  supplementary:     {},
+  land_use:          {},
+  notable_features:  "",
+  prediction:        null,
 };
 
 window.__surveyEvents = window.__surveyEvents || new EventTarget();
@@ -41,7 +40,6 @@ window.__surveyEmit = emitChange;
   const mapEl     = document.getElementById("map");
   const hydroCard = document.getElementById("hydro-card");
   const hydroBody = document.getElementById("hydro-body");
-  const overrideRow = document.getElementById("hydro-override-row");
 
   if (!btnDetect || !mapEl) return;
 
@@ -52,9 +50,10 @@ window.__surveyEmit = emitChange;
   }).addTo(map);
 
   let marker = null;
-  const goldIcon = L.divIcon({
-    className: "gold-marker",
-    html: '<div style="width:20px;height:20px;border-radius:50%;background:#f5c77a;border:3px solid #1a1a1a;box-shadow:0 0 12px rgba(245,199,122,0.7);"></div>',
+  // Calm blue marker — matches the new theme
+  const blueIcon = L.divIcon({
+    className: "blue-marker",
+    html: '<div style="width:20px;height:20px;border-radius:50%;background:#3f88c8;border:3px solid #ffffff;box-shadow:0 0 12px rgba(63,136,200,0.7);"></div>',
     iconSize: [20, 20],
     iconAnchor: [10, 10],
   });
@@ -79,7 +78,7 @@ window.__surveyEmit = emitChange;
         coordsBox.style.display = "block";
         coordsBox.textContent = `📌 Detected: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
         if (marker) marker.setLatLng([lat, lon]);
-        else        marker = L.marker([lat, lon], { icon: goldIcon }).addTo(map);
+        else        marker = L.marker([lat, lon], { icon: blueIcon }).addTo(map);
         map.setView([lat, lon], 13);
 
         btnDetect.textContent = "↻ Re-detect Location";
@@ -105,7 +104,6 @@ window.__surveyEmit = emitChange;
     if (!hydroCard || !hydroBody) return;
     hydroCard.style.display = "block";
     hydroBody.innerHTML = '<p class="muted">Looking up hydrogeological context…</p>';
-    if (overrideRow) overrideRow.style.display = "none";
 
     try {
       const res = await fetch(
@@ -119,14 +117,9 @@ window.__surveyEmit = emitChange;
         return;
       }
 
-      // Persist the FULL response so save.js can snapshot it on the
-      // saved survey record.
       window.__surveyState.hydro = data;
       emitChange();
       renderHydroResult(data);
-
-      // Auto-fill the Geological Features predictor with the BGS-suggested
-      // model class. The surveyor can override it via the toggle.
       autofillGeologyPredictor(data);
     } catch (e) {
       window.__surveyState.hydro = null;
@@ -180,7 +173,7 @@ window.__surveyEmit = emitChange;
         <tr><td>BGS aquifer type</td> <td>${escapeHtml(data.bgs_aquifer_type || "—")}</td></tr>
         <tr><td>BGS yield code</td>   <td>${escapeHtml(data.raw_hg_code || "—")}</td></tr>
         <tr><td>Baseline yield</td>   <td>${escapeHtml(data.bgs_baseline_yield || "—")} (${escapeHtml(data.bgs_baseline_yield_lps || "—")} L/s)</td></tr>
-        <tr><td>Auto-suggested geology class</td>
+        <tr><td>Auto-inferred geology class</td>
             <td><strong>${escapeHtml(data.model_class || "—")}</strong>
                 <span class="pill" style="margin-left: 0.4rem;">${escapeHtml(data.remap_confidence || "—")} confidence</span>
                 ${flagPill}
@@ -191,13 +184,11 @@ window.__surveyEmit = emitChange;
         Source: BGS Africa Groundwater Atlas (1:5,000,000) · CC BY-SA 4.0
       </p>
     `;
-    if (overrideRow) overrideRow.style.display = "block";
   }
 
   function autofillGeologyPredictor(data) {
     if (data.status !== "ok" || !data.model_class) return;
     document.querySelectorAll("[data-feature]").forEach((el) => {
-      // Match "Geological Features", "Geological.Features", "geological_features", etc.
       const featName = el.dataset.feature.toLowerCase().replace(/[\s._]+/g, "");
       if (featName === "geologicalfeatures") {
         const target = String(data.model_class).toLowerCase();
@@ -210,6 +201,15 @@ window.__surveyEmit = emitChange;
         });
         if (matched) {
           el.dispatchEvent(new Event("change", { bubbles: true }));
+          // Also update the user-facing read-only display.
+          const valueEl  = document.getElementById("geology-inferred-value");
+          const sourceEl = document.getElementById("geology-inferred-source");
+          if (valueEl)  valueEl.textContent  = data.model_class;
+          if (sourceEl) {
+            const conf = data.remap_confidence ? `${data.remap_confidence} confidence` : "";
+            sourceEl.textContent =
+              `Inferred from BGS polygon (${data.raw_glg || "—"})${conf ? " — " + conf : ""}.`;
+          }
         }
       }
     });

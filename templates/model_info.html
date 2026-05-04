@@ -2,6 +2,16 @@
 
 {% block title %}Model Info — Groundwater Potential Mapping System{% endblock %}
 
+{% block head_extra %}
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+{% endblock %}
+
 {% block content %}
   <div class="card">
     <h1>🧠 Model Information</h1>
@@ -25,11 +35,41 @@
     {% else %}
       <div class="alert error">Selected feature list is not available. Check <code>selected_features.pkl</code>.</div>
     {% endif %}
+  </div>
 
-    <h2 style="margin-top: 1.5rem;">Post-prediction processing</h2>
+  <!-- ============== Source data — rendered shapefile ============== -->
+  <div class="card">
+    <h2>📍 Source data — BGS hydrogeology shapefile</h2>
+    <p class="muted">
+      This is the shapefile that drives every geology lookup, BGS regional
+      baseline cross-check, and auto-inferred geology class in the
+      prediction pipeline. Rendering it here makes the source of our
+      information transparent: every prediction the model produces is
+      anchored to one of the polygons below.
+    </p>
+    <p class="muted" style="font-size: 0.9rem;">
+      <strong>Source:</strong> BGS Africa Groundwater Atlas (Zimbabwe), 1:5,000,000
+      · CC BY-SA 4.0
+    </p>
+
+    <div id="shapefile-map"></div>
+    <div id="shapefile-status" class="muted" style="font-size: 0.85rem; margin-top: 0.5rem;">
+      Loading polygons…
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch" style="background: #2f6ea8;"></span>Granite (basement / metavolcanics)</span>
+      <span class="legend-item"><span class="legend-swatch" style="background: #6fb07a;"></span>Limestone (sedimentary / Karoo)</span>
+      <span class="legend-item"><span class="legend-swatch" style="background: #c98a2e;"></span>Other / unmapped</span>
+      <span class="legend-item"><span class="legend-swatch" style="background: #a3c8e2;"></span>Surface water</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Post-prediction processing</h2>
     <p>Once the SVM produces its raw class, the system runs three more passes before reporting:</p>
     <ol>
-      <li><strong>BGS regional baseline cross-check</strong> — compare the SVM's binary class to the BGS Africa Groundwater Atlas baseline yield class for the polygon at the GPS point. Disagreement triggers expert review.</li>
+      <li><strong>BGS regional baseline cross-check</strong> — compare the SVM's binary class to the BGS Africa Groundwater Atlas baseline yield class for the polygon at the GPS point. Disagreement is treated as a sign that more on-the-ground information (e.g. electromagnetic surveys) is needed, not as a hard error.</li>
       <li><strong>Total Confidence Score (TCS)</strong> — sum of four components out of 10:
         <ul>
           <li><em>C1 (3)</em> — data completeness: how many of the 6 predictors were directly observed vs inferred</li>
@@ -48,7 +88,94 @@
       <li>Severe land-use pressure (LUPS ≤ −3)</li>
       <li>Geology remapped with Low confidence</li>
       <li>No supplementary indicators support the prediction</li>
-      <li>BGS baseline contradicts the model</li>
+      <li>BGS baseline differs from the model</li>
     </ul>
   </div>
+{% endblock %}
+
+{% block body_extra %}
+<script>
+  (function () {
+    const mapEl    = document.getElementById("shapefile-map");
+    const statusEl = document.getElementById("shapefile-status");
+    if (!mapEl) return;
+
+    const map = L.map("shapefile-map").setView([-19.0154, 29.1549], 6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
+    }).addTo(map);
+
+    function colourFor(props) {
+      const cls = (props && props.__model_class) || "";
+      if (cls === "Granite")        return "#2f6ea8";
+      if (cls === "Limestone")      return "#6fb07a";
+      if (cls === "Surface water")  return "#a3c8e2";
+      return "#c98a2e";  // unmapped / other
+    }
+
+    function describeFeature(props) {
+      if (!props) return "—";
+      const lines = [];
+      if (props.ZimGLG)     lines.push("<strong>Geology:</strong> " + escapeHtml(props.ZimGLG));
+      if (props.ZimHGComb)  lines.push("<strong>BGS code:</strong> " + escapeHtml(props.ZimHGComb));
+      if (props.__model_class) lines.push("<strong>Model class:</strong> " + escapeHtml(props.__model_class));
+      return lines.length ? lines.join("<br>") : "—";
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    statusEl.textContent = "Fetching shapefile (~1 MB)…";
+
+    fetch("/api/hydrogeology.geojson")
+      .then(function (res) {
+        if (!res.ok) throw new Error("Server returned " + res.status);
+        return res.json();
+      })
+      .then(function (geojson) {
+        if (!geojson || !geojson.features || !geojson.features.length) {
+          statusEl.textContent =
+            "Shapefile data is not available on this server — drop a shapefile bundle into artifacts/hydrogeology/ and restart.";
+          return;
+        }
+
+        const layer = L.geoJSON(geojson, {
+          style: function (feature) {
+            return {
+              color:       "#1f4f7a",
+              weight:      0.5,
+              opacity:     0.9,
+              fillColor:   colourFor(feature.properties),
+              fillOpacity: 0.45,
+            };
+          },
+          onEachFeature: function (feature, l) {
+            l.bindPopup(describeFeature(feature.properties));
+            l.on("mouseover", function () {
+              l.setStyle({ weight: 1.5, fillOpacity: 0.65 });
+            });
+            l.on("mouseout", function () {
+              layer.resetStyle(l);
+            });
+          },
+        }).addTo(map);
+
+        try {
+          map.fitBounds(layer.getBounds(), { padding: [10, 10] });
+        } catch (e) { /* ignore */ }
+
+        statusEl.textContent =
+          geojson.features.length + " polygon" +
+          (geojson.features.length === 1 ? "" : "s") +
+          " loaded — click any polygon for its BGS attributes.";
+      })
+      .catch(function (e) {
+        statusEl.textContent = "Could not load shapefile: " + e.message;
+      });
+  })();
+</script>
 {% endblock %}

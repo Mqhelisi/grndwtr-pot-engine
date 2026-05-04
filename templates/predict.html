@@ -18,8 +18,8 @@
     <h1>🔮 Predict Groundwater Potential</h1>
     <p class="lead">
       Detect your location, review the hydrogeological context, fill in
-      the predictor values, record supplementary observations and
-      land use, run the prediction, then save the full survey.
+      the predictor values, record vegetation, recharge and seasonal
+      observations, then run the prediction and save the full survey.
     </p>
     {% if model_name %}
       <p class="muted" style="font-size: 0.85rem; margin-top: -0.4rem;">
@@ -44,31 +44,11 @@
     <h2>🗺️ 2 · Hydrogeological context</h2>
     <p class="muted" style="font-size: 0.9rem;">
       Auto-derived from the BGS Africa Groundwater Atlas (1:5M scale).
-      <strong>The geology you see here is regional context</strong> — verify
-      against any visible outcrops at your survey point. You can override
-      the model class below if your field observation contradicts it.
+      The <strong>geology class</strong> used by the model is automatically
+      inferred from the polygon at your GPS point — no manual selection
+      is needed.
     </p>
     <div id="hydro-body"></div>
-
-    <div id="hydro-override-row" style="display: none; margin-top: 1rem;">
-      <label for="geo-override-toggle" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-        <input type="checkbox" id="geo-override-toggle"
-               style="width: auto; margin-right: 0.4rem;">
-        Override the auto-suggested geology (use field observation instead)
-      </label>
-      <div id="geo-override-row" style="display: none; margin-top: 0.5rem;">
-        <label for="geo-override-value">Field-observed geology class</label>
-        <select id="geo-override-value">
-          <option value="Granite">Granite</option>
-          <option value="Limestone">Limestone</option>
-        </select>
-        <label for="geo-override-reason" style="margin-top: 0.5rem;">
-          Reason for override (visible outcrop, local survey, etc.)
-        </label>
-        <input type="text" id="geo-override-reason" maxlength="200"
-               placeholder="e.g. Visible granite outcrop within 50 m of survey point">
-      </div>
-    </div>
   </div>
 
   <!-- ============== 3 · PREDICTOR INPUTS ============== -->
@@ -92,30 +72,104 @@
 
       <div id="predictor-grid" class="predictor-grid">
         {% for feature, options in predictors.items() %}
-          <div>
-            <label for="feat-{{ loop.index }}">🔸 {{ feature }}</label>
-            <select id="feat-{{ loop.index }}" data-feature="{{ feature }}">
-              {% for opt in options %}
-                <option value="{{ opt }}">{{ opt }}</option>
-              {% endfor %}
-            </select>
-            <label style="font-size: 0.82rem; font-weight: normal; color: var(--text-mute); margin-top: 0.3rem; display: inline-flex; align-items: center; gap: 0.4rem;">
-              <input type="checkbox" data-inferred="{{ feature }}"
-                     style="width: auto;"> inferred (not directly observed)
-            </label>
-          </div>
+          {% set normalised = feature.lower().replace(' ', '').replace('.', '').replace('_', '') %}
+          {% if normalised == 'geologicalfeatures' %}
+            {# Geology is inferred from the map data, not selected by the user.
+               We still need a hidden control so the value flows into the
+               prediction request. The user-facing display will show what
+               was inferred. #}
+            <div id="geology-inferred-card">
+              <label>🪨 {{ feature }} <span class="muted" style="font-weight: normal;">(auto-inferred)</span></label>
+              <div class="inferred-display">
+                <span class="ind-label">From BGS map data</span>
+                <span class="ind-value" id="geology-inferred-value">— pending location detection —</span>
+                <span class="ind-source" id="geology-inferred-source">Detect your location above to populate.</span>
+              </div>
+              <select id="feat-{{ loop.index }}" data-feature="{{ feature }}"
+                      style="display: none;" aria-hidden="true">
+                {% for opt in options %}
+                  <option value="{{ opt }}">{{ opt }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% else %}
+            <div>
+              <label for="feat-{{ loop.index }}">🔸 {{ feature }}</label>
+              <select id="feat-{{ loop.index }}" data-feature="{{ feature }}">
+                {% for opt in options %}
+                  <option value="{{ opt }}">{{ opt }}</option>
+                {% endfor %}
+              </select>
+              <label style="font-size: 0.82rem; font-weight: normal; color: var(--text-mute); margin-top: 0.3rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <input type="checkbox" data-inferred="{{ feature }}"
+                       style="width: auto;"> inferred (not directly observed)
+              </label>
+            </div>
+          {% endif %}
         {% endfor %}
       </div>
     {% endif %}
   </div>
 
-  <!-- ============== 4 · SUPPLEMENTARY OBSERVATIONS ============== -->
+  <!-- ============== 4 · VEGETATION & RECHARGE INDICATORS ============== -->
   <div class="card">
-    <h2>🌿 4 · Supplementary observations</h2>
+    <h2>🌱 4 · Vegetation &amp; recharge indicators</h2>
     <p class="muted">
-      These observations are not direct model inputs, but they support the
-      Confidence Score and will inform future model retraining. Tick every
-      indicator you can verify at the survey point.
+      Surface-level indicators that support (or contradict) the model
+      prediction. Each one feeds the <em>indicator convergence</em>
+      component of the confidence score.
+    </p>
+
+    <div class="dropdown-grid">
+      <div>
+        <label for="veg-type">🌿 Vegetation type</label>
+        <select id="veg-type" data-supp-select="vegetation_type">
+          <option value="">— not recorded —</option>
+          <option value="Native">Native</option>
+          <option value="Exotic">Exotic</option>
+          <option value="Mixed">Mixed</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="veg-distribution">📊 Vegetation distribution</label>
+        <select id="veg-distribution" data-supp-select="vegetation_distribution">
+          <option value="">— not recorded —</option>
+          <option value="Sparse">Sparse</option>
+          <option value="Medium">Medium</option>
+          <option value="Dense">Dense</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="veg-cover">🌾 Vegetation cover</label>
+        <select id="veg-cover" data-supp-select="vegetation_cover">
+          <option value="">— not recorded —</option>
+          <option value="Bare">Bare</option>
+          <option value="Grasslands">Grasslands</option>
+          <option value="Shrubs">Shrubs</option>
+          <option value="Wooded Grasslands">Wooded Grasslands</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="recharge">💧 Groundwater recharge</label>
+        <select id="recharge" data-supp-select="groundwater_recharge">
+          <option value="">— not recorded —</option>
+          <option value="Invisible">Invisible</option>
+          <option value="Visible">Visible</option>
+          <option value="Natural Streams">Natural Streams</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== 5 · SUPPLEMENTARY OBSERVATIONS ============== -->
+  <div class="card">
+    <h2>🌿 5 · Supplementary observations</h2>
+    <p class="muted">
+      Tick every indicator you can verify at the survey point. These
+      support the Confidence Score and inform future model retraining.
     </p>
 
     <div class="checklist">
@@ -146,9 +200,29 @@
     </div>
   </div>
 
-  <!-- ============== 5 · LAND USE PRESSURE ============== -->
+  <!-- ============== 6 · SEASONAL GROUNDWATER OBSERVATIONS ============== -->
   <div class="card">
-    <h2>🏗️ 5 · Land use within 1 km radius</h2>
+    <h2>🗓️ 6 · Seasonal groundwater observations</h2>
+    <p class="muted">
+      Observations of nearby surface or shallow groundwater features and
+      whether they persist year-round.
+    </p>
+
+    <div class="checklist">
+      <label class="checklist-item">
+        <input type="checkbox" data-supp="perennial_water_feature">
+        <span><strong>Perennial wetland / deep well / river stream</strong> — water source remains present throughout the year</span>
+      </label>
+      <label class="checklist-item">
+        <input type="checkbox" data-supp="seasonal_water_feature">
+        <span><strong>Seasonal wetland / well / stream</strong> — water source dries out during the dry season</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ============== 7 · LAND USE PRESSURE ============== -->
+  <div class="card">
+    <h2>🏗️ 7 · Land use within 1 km radius</h2>
     <p class="muted">
       Each item shifts the Land Use Pressure Score (LUPS). The score is
       applied as a modifier <em>after</em> the model runs — severe
@@ -169,8 +243,8 @@
         <span>Urban / peri-urban development &gt; 30% impervious cover  <em class="lups-weight">−2</em></span>
       </label>
       <label class="checklist-item lups-bad">
-        <input type="checkbox" data-lups="deforestation_or_eucalyptus">
-        <span>Significant deforestation OR Eucalyptus / Pine plantation  <em class="lups-weight">−1</em></span>
+        <input type="checkbox" data-lups="deforestation">
+        <span>Deforestation  <em class="lups-weight">−1</em></span>
       </label>
       <label class="checklist-item lups-bad">
         <input type="checkbox" data-lups="irrigated_ag_borehole_source">
@@ -179,10 +253,6 @@
       <label class="checklist-item lups-good">
         <input type="checkbox" data-lups="farm_dam_or_weir_within_300m">
         <span>Active farm dam or small weir within 300 m  <em class="lups-weight">+1</em></span>
-      </label>
-      <label class="checklist-item">
-        <input type="checkbox" data-lups="no_significant_pressure">
-        <span>No significant land-use pressure  <em class="lups-weight">0</em></span>
       </label>
     </div>
 
@@ -193,9 +263,36 @@
     </p>
   </div>
 
-  <!-- ============== 6 · RUN PREDICTION ============== -->
+  <!-- ============== 8 · NOTABLE GEOLOGICAL FEATURES (optional) ============== -->
   <div class="card">
-    <h2>✨ 6 · Run prediction</h2>
+    <h2>🪨 8 · Notable geological features <span class="muted" style="font-weight: normal; font-size: 0.95rem;">(optional)</span></h2>
+    <p class="muted">
+      Add a free-form note describing the local terrain — e.g. whether the
+      site sits on an upland, lowland, valley, or any other notable
+      geological feature. Pick a suggestion or type your own.
+    </p>
+
+    <label for="notable-features">Notable geological features</label>
+    <input type="text" id="notable-features" list="notable-features-suggestions"
+           maxlength="300"
+           placeholder="e.g. Valley floor with seasonal river bed">
+    <datalist id="notable-features-suggestions">
+      <option value="Upland">
+      <option value="Lowland">
+      <option value="Valley">
+      <option value="Plateau">
+      <option value="Ridge">
+      <option value="Gentle slope">
+      <option value="Steep escarpment">
+      <option value="Floodplain">
+      <option value="River terrace">
+      <option value="Rocky outcrop">
+    </datalist>
+  </div>
+
+  <!-- ============== 9 · RUN PREDICTION ============== -->
+  <div class="card">
+    <h2>✨ 9 · Run prediction</h2>
     <div class="btn-row">
       <button id="btn-predict" class="btn">✨ Run Full Prediction</button>
     </div>
@@ -205,9 +302,9 @@
     <div id="result-detail" style="display:none;"></div>
   </div>
 
-  <!-- ============== 7 · SAVE SITE SURVEY ============== -->
+  <!-- ============== 10 · SAVE SITE SURVEY ============== -->
   <div class="card">
-    <h2>💾 7 · Save site survey</h2>
+    <h2>💾 10 · Save site survey</h2>
     <p class="muted">
       All four parts must be complete before you can save. Each one ticks
       green as you do it.

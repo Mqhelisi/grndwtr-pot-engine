@@ -75,8 +75,14 @@
         values:           s.predictors || {},
         inferred:         s.inferred   || {},
         inferred_count:   s.inferred_count || 0,
-        geology_override: s.geo_override || null,
       };
+
+      // Bundle the optional notable-features free-text note in with
+      // supplementary so it is persisted on the saved record.
+      const supplementaryPayload = Object.assign({}, s.supplementary || {});
+      if (s.notable_features) {
+        supplementaryPayload.notable_features = s.notable_features;
+      }
 
       const res = await fetch("/api/locations", {
         method: "POST",
@@ -87,7 +93,7 @@
           label:         labelInput.value || null,
           hydrogeology:  s.hydro,
           predictors:    predictorsPayload,
-          supplementary: s.supplementary || {},
+          supplementary: supplementaryPayload,
           land_use:      s.land_use      || {},
           prediction:    s.prediction    || {},
         }),

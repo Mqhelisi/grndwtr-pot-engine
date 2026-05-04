@@ -468,6 +468,17 @@ def register_routes(app: Flask) -> None:
         result["app_status"] = hydrogeology.status()
         return jsonify(result), 200
 
+    @app.route("/api/hydrogeology.geojson", methods=["GET"])
+    def api_hydrogeology_geojson():
+        """
+        Serve the loaded BGS hydrogeology shapefile as GeoJSON, enriched
+        with the decoded model class. Used by the Model Info page to
+        render the underlying source data on a Leaflet map.
+        """
+        return jsonify(hydrogeology.to_geojson()), 200, {
+            "Content-Type": "application/geo+json",
+        }
+
     @app.route("/api/saved.geojson", methods=["GET"])
     def api_saved_geojson():
         """Export every saved survey as a GeoJSON FeatureCollection for QGIS."""

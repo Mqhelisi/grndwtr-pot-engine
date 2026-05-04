@@ -51,9 +51,9 @@ LUPS_WEIGHTS = {
     "active_mining_within_500m":          -3,
     "artisanal_mining_or_wetland_drain":  -2,
     "urban_impervious_over_30pct":        -2,
-    "deforestation_or_eucalyptus":        -1,
+    "deforestation":        -1,
     "irrigated_ag_borehole_source":       -1,
-    "no_significant_pressure":             0,
+    # "no_significant_pressure":             0,
     "farm_dam_or_weir_within_300m":       +1,
 }
 
@@ -161,8 +161,9 @@ def bgs_baseline_check(
         "status":       "flag",
         "model_binary": model_binary,
         "bgs_binary":   bgs_binary,
-        "message":      f"Model says {model_binary} but BGS regional baseline "
-                        f"is {bgs_binary}. Mandatory expert review.",
+        "message":      f"Model predicts {model_binary} but BGS regional baseline "
+                        f"indicates {bgs_binary}. Recommend on-the-ground "
+                        f"information (e.g. electromagnetic survey) to refine.",
     }
 
 

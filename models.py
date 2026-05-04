@@ -130,6 +130,14 @@ class SavedLocation(db.Model):
     # ------------------------------------------------------------------
     def to_dict(self):
         """Full JSON-serializable representation for API + report templates."""
+        supp = self.get_supplementary()
+        # `notable_features` is bundled into the supplementary JSON on save
+        # (to avoid a DB migration). Extract it here so templates can read
+        # `loc.notable_features` directly without poking at the supplementary
+        # dict.
+        notable = ""
+        if isinstance(supp, dict):
+            notable = supp.get("notable_features", "") or ""
         return {
             "id":             self.id,
             "latitude":       self.latitude,
@@ -137,10 +145,11 @@ class SavedLocation(db.Model):
             "label":          self.label,
             "hydrogeology":   self.get_hydrogeology(),
             "predictors":     self.get_predictors(),
-            "supplementary":  self.get_supplementary(),
+            "supplementary":  supp,
             "land_use":       self.get_land_use(),
             "prediction":     self.get_prediction(),
             "expert_review":  self.get_expert_review(),
+            "notable_features": notable,
             "final_class":    self.final_class,
             "tcs":            self.tcs,
             "needs_expert_review": bool(self.needs_expert_review),

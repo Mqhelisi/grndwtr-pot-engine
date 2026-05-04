@@ -434,3 +434,88 @@ def _legacy_summarise(matches: list) -> str:
                 return f"In {m[key]}"
         return "1 hydrogeological feature at this point"
     return f"{len(matches)} overlapping hydrogeological features at this point"
+
+
+# ---------------------------------------------------------------------------
+# GeoJSON export \u2014 used by /api/hydrogeology.geojson on the Model Info page.
+# ---------------------------------------------------------------------------
+# We compute it once and cache the result. The shapefile has ~hundreds of
+# polygons \u2014 small enough to ship to the browser, big enough that we
+# don't want to recompute every time the page loads.
+_geojson_cache: Optional[dict] = None
+
+
+def to_geojson(simplify_tolerance: float = 0.005) -> dict:
+    """
+    Serialise the loaded shapefile as a GeoJSON FeatureCollection in WGS84,
+    enriched with the decoded model class for client-side colouring.
+
+    Args:
+        simplify_tolerance: Douglas\u2013Peucker tolerance in degrees. ~0.005
+            (~500 m at the equator) gives a noticeable file-size reduction
+            while keeping polygon shapes recognisable at country scale.
+
+    Returns:
+        A GeoJSON dict, or {"type": "FeatureCollection", "features": []}
+        if the shapefile didn't load. Result is cached.
+    """
+    global _geojson_cache
+    if _geojson_cache is not None:
+        return _geojson_cache
+
+    if not is_ready():
+        _geojson_cache = {"type": "FeatureCollection", "features": []}
+        return _geojson_cache
+
+    try:
+        # Simplify polygons in-place on a copy. shapefile is already in
+        # EPSG:4326 (Leaflet/web-friendly) by the time we get here.
+        gdf = _gdf.copy()
+        try:
+            gdf["geometry"] = gdf.geometry.simplify(
+                simplify_tolerance, preserve_topology=True
+            )
+        except Exception:                        # noqa: BLE001
+            # If simplification fails (very rare), just use the raw geoms.
+            pass
+
+        features = []
+        for _, row in gdf.iterrows():
+            geom = row.geometry
+            if geom is None or geom.is_empty:
+                continue
+
+            props = {}
+            for col in _columns:
+                props[col] = _to_native(row[col])
+
+            # Attach decoded model_class for browser-side colouring.
+            if _is_bgs_zim:
+                raw_glg = props.get(GLG_FIELD)
+                remap = GEOLOGY_REMAP.get(raw_glg, {})
+                props["__model_class"] = remap.get("model_class")
+                if raw_glg == "Surface water":
+                    props["__model_class"] = "Surface water"
+
+            try:
+                from shapely.geometry import mapping
+                geom_json = mapping(geom)
+            except Exception:                    # noqa: BLE001
+                continue
+
+            features.append({
+                "type":       "Feature",
+                "properties": props,
+                "geometry":   geom_json,
+            })
+
+        _geojson_cache = {
+            "type":     "FeatureCollection",
+            "features": features,
+        }
+        return _geojson_cache
+
+    except Exception as exc:                     # noqa: BLE001
+        print(f"[hydrogeology] to_geojson failed: {exc}")
+        _geojson_cache = {"type": "FeatureCollection", "features": []}
+        return _geojson_cache

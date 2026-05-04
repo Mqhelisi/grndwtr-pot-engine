@@ -11,7 +11,7 @@
   <div class="layout">
 
     <aside class="sidebar">
-      <h2>🌍 Navigation</h2>
+      <h2>💧 Navigation</h2>
       <nav>
         <a href="{{ url_for('home')              }}" class="{{ 'active' if page == 'home'           else '' }}">🏠 Home</a>
         <a href="{{ url_for('predict_page')      }}" class="{{ 'active' if page == 'predict'        else '' }}">🔮 Predict</a>
@@ -26,6 +26,14 @@
 
     <main class="main">
       {% block content %}{% endblock %}
+
+      <footer class="app-footer">
+        <p>
+          Developed by <strong>Sustainability Lab</strong>
+          &nbsp;·&nbsp;
+          <a href="mailto:pascal@sustainabilitylab.africa">pascal@sustainabilitylab.africa</a>
+        </p>
+      </footer>
     </main>
 
   </div>

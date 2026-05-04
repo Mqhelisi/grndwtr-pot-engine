@@ -19,6 +19,17 @@
     </div>
   {% endif %}
 
+  {# ----------------------------------------------------------------------
+     Helpers — pull the new structured fields out of the supplementary
+     JSON. Vegetation/recharge dropdowns are stored as string values keyed
+     on `vegetation_type`, `vegetation_distribution`, `vegetation_cover`,
+     and `groundwater_recharge`. Everything else is a boolean checkbox.
+     ---------------------------------------------------------------------- #}
+  {% set supp = loc.supplementary or {} %}
+  {% set veg_keys = ['vegetation_type', 'vegetation_distribution',
+                     'vegetation_cover', 'groundwater_recharge'] %}
+  {% set seasonal_keys = ['perennial_water_feature', 'seasonal_water_feature'] %}
+
   <article class="report">
     <header class="report-head">
       <div>
@@ -58,7 +69,7 @@
           <tr><td>BGS aquifer type</td>      <td>{{ hg.bgs_aquifer_type or '—' }}</td></tr>
           <tr><td>BGS yield code</td>        <td>{{ hg.raw_hg_code or '—' }}</td></tr>
           <tr><td>Baseline yield</td>        <td>{{ hg.bgs_baseline_yield or '—' }} ({{ hg.bgs_baseline_yield_lps or '—' }} L/s)</td></tr>
-          <tr><td>Auto-suggested model class</td>
+          <tr><td>Auto-inferred geology class</td>
               <td><strong>{{ hg.model_class or '—' }}</strong>
                   ({{ hg.remap_confidence or '—' }} confidence
                   {% if hg.remap_flag %} · flag: {{ hg.remap_flag }}{% endif %})
@@ -77,21 +88,17 @@
       {% set pred = loc.predictors %}
       {% set vals = pred.get('values', pred) %}
       {% set inferred = pred.get('inferred', {}) %}
-      {% set override = pred.get('geology_override') %}
-      {% if override %}
-        <p class="muted">
-          <strong>Geology override applied:</strong>
-          BGS-suggested class was overridden to <strong>{{ override.value }}</strong>.
-          Reason: {{ override.reason or '—' }}
-        </p>
-      {% endif %}
       <table class="kv">
         {% for k, v in vals.items() %}
           <tr>
             <td>{{ k }}</td>
             <td>
               {{ v }}
-              {% if inferred.get(k) %} <em class="muted">(inferred)</em>{% endif %}
+              {% if k|lower|replace(' ', '')|replace('.', '')|replace('_', '') == 'geologicalfeatures' %}
+                <em class="muted">(auto-inferred from BGS map data)</em>
+              {% elif inferred.get(k) %}
+                <em class="muted">(inferred)</em>
+              {% endif %}
             </td>
           </tr>
         {% endfor %}
@@ -101,29 +108,70 @@
       </table>
     </section>
 
-    <!-- ============= SUPPLEMENTARY ============= -->
+    <!-- ============= VEGETATION & RECHARGE ============= -->
     <section>
-      <h2>4 · Supplementary observations</h2>
-      {% set supp = loc.supplementary %}
-      {% if supp %}
-        {% set ticked = supp.items() | selectattr(1) | list %}
-        {% if ticked %}
-          <table class="kv">
-            {% for k, v in ticked %}
-              <tr><td>{{ k.replace('_', ' ').capitalize() }}</td><td>✓</td></tr>
-            {% endfor %}
-          </table>
-        {% else %}
-          <p class="muted">No supplementary indicators recorded.</p>
+      <h2>4 · Vegetation &amp; recharge indicators</h2>
+      {% set veg_rows = [] %}
+      {% for k in veg_keys %}
+        {% if supp.get(k) %}
+          {% set _ = veg_rows.append((k, supp[k])) %}
         {% endif %}
+      {% endfor %}
+      {% if veg_rows %}
+        <table class="kv">
+          {% for k, v in veg_rows %}
+            <tr><td>{{ k.replace('_', ' ').capitalize() }}</td><td>{{ v }}</td></tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <p class="muted">No vegetation or recharge indicators recorded.</p>
+      {% endif %}
+    </section>
+
+    <!-- ============= SUPPLEMENTARY (boolean checks) ============= -->
+    <section>
+      <h2>5 · Supplementary observations</h2>
+      {% set ticked = [] %}
+      {% for k, v in supp.items() %}
+        {% if v is sameas true and k not in seasonal_keys %}
+          {% set _ = ticked.append(k) %}
+        {% endif %}
+      {% endfor %}
+      {% if ticked %}
+        <table class="kv">
+          {% for k in ticked %}
+            <tr><td>{{ k.replace('_', ' ').capitalize() }}</td><td>✓</td></tr>
+          {% endfor %}
+        </table>
       {% else %}
         <p class="muted">No supplementary indicators recorded.</p>
       {% endif %}
     </section>
 
+    <!-- ============= SEASONAL OBSERVATIONS ============= -->
+    <section>
+      <h2>6 · Seasonal groundwater observations</h2>
+      {% set seasonal_rows = [] %}
+      {% if supp.get('perennial_water_feature') %}
+        {% set _ = seasonal_rows.append('Perennial wetland / deep well / river stream') %}
+      {% endif %}
+      {% if supp.get('seasonal_water_feature') %}
+        {% set _ = seasonal_rows.append('Seasonal wetland / well / stream') %}
+      {% endif %}
+      {% if seasonal_rows %}
+        <table class="kv">
+          {% for label in seasonal_rows %}
+            <tr><td>{{ label }}</td><td>✓</td></tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <p class="muted">No seasonal water-feature observations recorded.</p>
+      {% endif %}
+    </section>
+
     <!-- ============= LAND USE ============= -->
     <section>
-      <h2>5 · Land use within 1 km</h2>
+      <h2>7 · Land use within 1 km</h2>
       {% set lu = loc.land_use %}
       {% if lu %}
         {% set ticked = lu.items() | selectattr(1) | list %}
@@ -141,9 +189,17 @@
       {% endif %}
     </section>
 
+    <!-- ============= NOTABLE GEOLOGICAL FEATURES ============= -->
+    {% if loc.notable_features %}
+      <section>
+        <h2>8 · Notable geological features</h2>
+        <p>{{ loc.notable_features }}</p>
+      </section>
+    {% endif %}
+
     <!-- ============= PREDICTION ============= -->
     <section>
-      <h2>6 · Prediction</h2>
+      <h2>{% if loc.notable_features %}9{% else %}8{% endif %} · Prediction</h2>
       {% set p = loc.prediction %}
       {% set raw = p.get('raw_model', {}) %}
       {% set mod = p.get('modifier', {}) %}
@@ -187,32 +243,62 @@
       </table>
 
       <h3 style="margin-top: 1.2rem;">BGS regional baseline cross-check</h3>
-      <table class="kv">
-        <tr><td>Status</td>        <td>{{ bgs.get('status', '—') }}</td></tr>
-        <tr><td>Model says</td>    <td>{{ bgs.get('model_binary', '—') }}</td></tr>
-        <tr><td>BGS baseline</td>  <td>{{ bgs.get('bgs_binary',   '—') }}</td></tr>
-        <tr><td>Detail</td>        <td>{{ bgs.get('message',      '—') }}</td></tr>
-      </table>
+      {% if bgs.get('status') == 'flag' %}
+        {# Subtle informational note — NOT a red error. #}
+        <div class="bgs-note">
+          <p style="margin: 0 0 0.4rem 0;">
+            <strong>Regional BGS baseline differs from the model prediction.</strong>
+          </p>
+          <p style="margin: 0;">
+            The BGS Africa Groundwater Atlas indicates a
+            <strong>{{ bgs.get('bgs_binary', '—') }}</strong>
+            potential at the regional polygon scale, while the model predicts
+            <strong>{{ bgs.get('model_binary', '—') }}</strong>
+            at this specific point. This simply means more on-the-ground
+            information is needed — for example, an electromagnetic survey
+            or other targeted geophysical measurements — to refine the
+            picture and reconcile the regional baseline with local conditions.
+          </p>
+        </div>
+      {% else %}
+        <table class="kv">
+          <tr><td>Status</td>        <td>{{ bgs.get('status', '—') }}</td></tr>
+          <tr><td>Model says</td>    <td>{{ bgs.get('model_binary', '—') }}</td></tr>
+          <tr><td>BGS baseline</td>  <td>{{ bgs.get('bgs_binary',   '—') }}</td></tr>
+          <tr><td>Detail</td>        <td>{{ bgs.get('message',      '—') }}</td></tr>
+        </table>
+      {% endif %}
 
       {% if p.get('flags') %}
         <h3 style="margin-top: 1.2rem;">Flags</h3>
         <p>{% for f in p.flags %}<span class="pill pill-bad" style="margin-right: 0.3rem;">{{ f }}</span>{% endfor %}</p>
       {% endif %}
 
+      {# Expert review banner — filter out the BGS-disagreement reason
+         (it's already explained calmly above). Show banner only if there
+         are OTHER review reasons remaining. #}
       {% if rev.get('needs_review') %}
-        <div class="alert error" style="margin-top: 1rem;">
-          <strong>Expert review required.</strong>
-          <ul>
-            {% for r in rev.get('reasons', []) %}<li>{{ r }}</li>{% endfor %}
-          </ul>
-        </div>
+        {% set other_reasons = [] %}
+        {% for r in rev.get('reasons', []) %}
+          {% if 'BGS regional baseline' not in r %}
+            {% set _ = other_reasons.append(r) %}
+          {% endif %}
+        {% endfor %}
+        {% if other_reasons %}
+          <div style="margin-top: 1rem; padding: 0.75rem 1rem; border-left: 3px solid #c98a2e; background: rgba(201, 138, 46, 0.06); border-radius: 4px;">
+            <strong style="color: #8a5a1a;">Expert review suggested.</strong>
+            <ul style="margin: 0.4rem 0 0 1.2rem;">
+              {% for r in other_reasons %}<li>{{ r }}</li>{% endfor %}
+            </ul>
+          </div>
+        {% endif %}
       {% endif %}
     </section>
 
     <!-- ============= EXPERT REVIEW DECISION (if recorded) ============= -->
     {% if loc.expert_review and loc.expert_review.get('decision') %}
       <section>
-        <h2>7 · Expert review decision</h2>
+        <h2>{% if loc.notable_features %}10{% else %}9{% endif %} · Expert review decision</h2>
         {% set er = loc.expert_review %}
         <table class="kv">
           <tr><td>Decision</td>  <td><strong>{{ er.decision }}</strong></td></tr>
@@ -229,12 +315,22 @@
     <hr>
 
     <footer class="report-foot">
+      <div class="disclaimer">
+        <strong>Recommendation:</strong>
+        Deploy electromagnetic equipment for determining the behaviour and
+        nature of underground fractures and geological resistivity.
+      </div>
       <p class="muted">
         This report reflects the state of the site at the time of survey.
         The hydrogeological context shown is a snapshot taken at save time;
         the model prediction is based on the surveyor's observed predictor
         values and the trained model in effect at that time. Hydrogeology
         data sourced from the BGS Africa Groundwater Atlas (CC BY-SA 4.0).
+      </p>
+      <p class="credit">
+        Developed by <strong>Sustainability Lab</strong>
+        &nbsp;·&nbsp;
+        <a href="mailto:pascal@sustainabilitylab.africa">pascal@sustainabilitylab.africa</a>
       </p>
     </footer>
   </article>

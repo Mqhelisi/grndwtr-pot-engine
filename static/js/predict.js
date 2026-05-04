@@ -1,15 +1,25 @@
 /* ============================================================================
-   Predictor form + supplementary observations + land use + prediction.
+   Predictor form + supplementary obs + vegetation/recharge/seasonal +
+   notable features + land use + prediction.
    --------------------------------------------------------------------------
    Mirrors all UI state into window.__surveyState. The save-survey panel
    reads it; this file calls /api/predict, renders the result, and writes
    the full server response back into state for save.js to persist.
 
-   The endpoint now returns a richer object:
+   The endpoint returns a richer object:
        { raw_model, geology, tcs, lups, modifier, bgs_check, flags,
          expert_review }
-   We render summary metrics inline and a collapsible details block
-   below.
+
+   Notes
+   -----
+   * Geological Features is no longer a user-facing dropdown — it is
+     auto-inferred from the BGS map data and rendered read-only in the
+     predictor card. The hidden <select> still exists in the form so the
+     value flows into the predict request unchanged.
+   * BGS-vs-model disagreement is intentionally rendered as a calm
+     informational note (not a red error). It simply means the regional
+     baseline differs from the model and we recommend on-the-ground
+     equipment to refine.
    ============================================================================ */
 
 (() => {
@@ -45,11 +55,15 @@
   });
   syncPredictors();
 
-  // -------- Supplementary observations ------------------------------------
+  // -------- Supplementary observations (checkboxes + dropdowns) -----------
   function syncSupplementary() {
     const supp = {};
     document.querySelectorAll("[data-supp]").forEach((el) => {
       supp[el.dataset.supp] = !!el.checked;
+    });
+    document.querySelectorAll("[data-supp-select]").forEach((el) => {
+      // Only include if the user picked a non-empty value
+      if (el.value) supp[el.dataset.suppSelect] = el.value;
     });
     window.__surveyState.supplementary = supp;
     invalidatePrediction();
@@ -58,18 +72,32 @@
   document.querySelectorAll("[data-supp]").forEach((el) => {
     el.addEventListener("change", syncSupplementary);
   });
+  document.querySelectorAll("[data-supp-select]").forEach((el) => {
+    el.addEventListener("change", syncSupplementary);
+  });
   syncSupplementary();
 
+  // -------- Notable geological features (free-text) ------------------------
+  const notable = document.getElementById("notable-features");
+  function syncNotableFeatures() {
+    window.__surveyState.notable_features =
+      notable && notable.value ? notable.value.trim() : "";
+    window.__surveyEmit && window.__surveyEmit();
+  }
+  if (notable) {
+    notable.addEventListener("input", syncNotableFeatures);
+    notable.addEventListener("change", syncNotableFeatures);
+    syncNotableFeatures();
+  }
+
   // -------- Land use + live LUPS preview ----------------------------------
-  // LUPS weights MUST match server (confidence.LUPS_WEIGHTS). Kept here for
-  // a live preview only — server is the source of truth.
+  // Weights MUST match server (confidence.LUPS_WEIGHTS).
   const LUPS_WEIGHTS = {
     active_mining_within_500m:         -3,
     artisanal_mining_or_wetland_drain: -2,
     urban_impervious_over_30pct:       -2,
-    deforestation_or_eucalyptus:       -1,
+    deforestation:                     -1,
     irrigated_ag_borehole_source:      -1,
-    no_significant_pressure:            0,
     farm_dam_or_weir_within_300m:      +1,
   };
 
@@ -91,7 +119,7 @@
       else if (total < -2)          lvl = "severe";
       level.textContent = `(${lvl})`;
       level.style.color = (lvl === "severe") ? "var(--danger)"
-                          : (lvl === "moderate") ? "var(--gold-bright)"
+                          : (lvl === "moderate") ? "var(--warning)"
                           : "var(--text-mute)";
     }
     invalidatePrediction();
@@ -101,28 +129,6 @@
     el.addEventListener("change", syncLandUse);
   });
   syncLandUse();
-
-  // -------- Geology override (in the Hydrogeology card) ------------------
-  const overrideToggle = document.getElementById("geo-override-toggle");
-  const overrideRow    = document.getElementById("geo-override-row");
-  const overrideValue  = document.getElementById("geo-override-value");
-  const overrideReason = document.getElementById("geo-override-reason");
-
-  function syncGeoOverride() {
-    if (!overrideToggle) return;
-    const on = overrideToggle.checked;
-    if (overrideRow) overrideRow.style.display = on ? "block" : "none";
-    window.__surveyState.geo_override = on
-      ? { value: overrideValue.value, reason: overrideReason.value || "" }
-      : null;
-    invalidatePrediction();
-  }
-  if (overrideToggle) {
-    overrideToggle.addEventListener("change", syncGeoOverride);
-    overrideValue && overrideValue.addEventListener("change", syncGeoOverride);
-    overrideReason && overrideReason.addEventListener("input", syncGeoOverride);
-    syncGeoOverride();
-  }
 
   function invalidatePrediction() {
     if (window.__surveyState.prediction) {
@@ -149,20 +155,9 @@
       return;
     }
 
-    // Apply geology override locally so we send the surveyor's chosen
-    // value into the model. The server still receives the GPS, runs its
-    // OWN lookup for the audit trail / saved record, but the model input
-    // we give it reflects the override.
+    // Geology is auto-inferred by geo.js from the BGS map data and
+    // already lives in s.predictors — nothing extra to do here.
     const predictorsToSend = { ...s.predictors };
-    if (s.geo_override) {
-      // Find the geology predictor by normalized name ("Geological Features",
-      // "Geological.Features", etc all map to the same thing).
-      Object.keys(predictorsToSend).forEach((k) => {
-        if (k.toLowerCase().replace(/[\s._]+/g, "") === "geologicalfeatures") {
-          predictorsToSend[k] = s.geo_override.value;
-        }
-      });
-    }
 
     btn.disabled = true;
     const oldText = btn.textContent;
@@ -195,7 +190,6 @@
       }
       if (!res.ok) throw new Error(body.message || body.error || `Server returned ${res.status}`);
 
-      // Stash the FULL server response — save.js sends this back on save.
       window.__surveyState.prediction = body;
       window.__surveyEmit && window.__surveyEmit();
       renderResult(body);
@@ -218,8 +212,6 @@
     const mod = r.modifier  || {};
     const tcs = r.tcs       || {};
     const lups = r.lups     || {};
-    const bgs  = r.bgs_check || {};
-    const review = r.expert_review || {};
 
     const finalLabel = mod.final_label || raw.label || "—";
     const isHigh = (mod.final_class_int === 1) ||
@@ -257,7 +249,6 @@
     `;
     result.style.display = "block";
 
-    // --- Detail block --------------------------------------------------
     detail.innerHTML = renderDetail(r);
     detail.style.display = "block";
     detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -266,7 +257,6 @@
   function renderDetail(r) {
     const mod    = r.modifier   || {};
     const tcs    = r.tcs        || {};
-    const lups   = r.lups       || {};
     const bgs    = r.bgs_check  || {};
     const review = r.expert_review || {};
     const flags  = r.flags || [];
@@ -283,16 +273,56 @@
       ? flags.map(f => `<span class="pill pill-bad" style="margin-right: 0.3rem;">${escapeHtml(f)}</span>`).join("")
       : `<span class="muted">No flags raised.</span>`;
 
-    const reviewBox = review.needs_review
+    // BGS baseline rendering — explicitly NOT a red alert. When the model
+    // and the BGS regional baseline disagree, we show a calm informational
+    // note explaining what that disagreement actually means.
+    let bgsBlock = "";
+    if (bgs.status === "flag") {
+      bgsBlock = `
+        <div class="bgs-note">
+          <p style="margin: 0 0 0.4rem 0;">
+            <strong>Regional BGS baseline differs from the model prediction.</strong>
+          </p>
+          <p style="margin: 0;">
+            The BGS Africa Groundwater Atlas indicates a
+            <strong>${escapeHtml(bgs.bgs_binary || "—")}</strong>
+            potential at the regional polygon scale, while the model predicts
+            <strong>${escapeHtml(bgs.model_binary || "—")}</strong>
+            for this specific point. This is not a contradiction so much as
+            a sign that more on-the-ground information is needed — for
+            example, an electromagnetic survey or other targeted geophysical
+            measurements — to refine the picture and reconcile the regional
+            baseline with the local conditions.
+          </p>
+        </div>
+      `;
+    } else {
+      bgsBlock = `<p>${escapeHtml(bgs.message || "—")}</p>
+        <p class="muted" style="font-size: 0.9rem;">
+          Status: <strong>${escapeHtml(bgs.status || "—")}</strong>
+          · Model says: ${escapeHtml(bgs.model_binary || "—")}
+          · BGS baseline: ${escapeHtml(bgs.bgs_binary || "—")}
+        </p>`;
+    }
+
+    // Expert review block. Filter the BGS-disagreement reason out of the
+    // red banner — it's already explained calmly above. Show the banner
+    // only if there are OTHER reasons.
+    const otherReasons = (review.reasons || []).filter(
+      (rsn) => !/BGS regional baseline/i.test(rsn)
+    );
+    const reviewBox = (review.needs_review && otherReasons.length)
       ? `
-        <div class="alert error" style="margin-top: 0.75rem;">
-          <strong>⚠ Expert review required.</strong>
-          <ul style="margin: 0.4rem 0 0 1.2rem;">
-            ${(review.reasons || []).map(rsn => `<li>${escapeHtml(rsn)}</li>`).join("")}
+        <div class="alert info" style="margin-top: 0.75rem; border-color: rgba(201, 138, 46, 0.35); background: rgba(201, 138, 46, 0.05); color: var(--warning);">
+          <strong>Expert review suggested.</strong>
+          <ul style="margin: 0.4rem 0 0 1.2rem; color: var(--text);">
+            ${otherReasons.map(rsn => `<li>${escapeHtml(rsn)}</li>`).join("")}
           </ul>
         </div>
       `
-      : `<p class="muted" style="margin-top: 0.5rem;">No expert review triggers raised.</p>`;
+      : (review.needs_review
+          ? `<p class="muted" style="margin-top: 0.5rem;">No additional expert-review triggers beyond the BGS baseline note above.</p>`
+          : `<p class="muted" style="margin-top: 0.5rem;">No expert review triggers raised.</p>`);
 
     return `
       <div class="card" style="margin-top: 1rem;">
@@ -300,12 +330,7 @@
         <div class="tcs-table">${tcsBars}</div>
 
         <h3 style="margin-top: 1rem;">BGS regional baseline cross-check</h3>
-        <p>${escapeHtml(bgs.message || "—")}</p>
-        <p class="muted" style="font-size: 0.9rem;">
-          Status: <strong>${escapeHtml(bgs.status || "—")}</strong>
-          · Model says: ${escapeHtml(bgs.model_binary || "—")}
-          · BGS baseline: ${escapeHtml(bgs.bgs_binary || "—")}
-        </p>
+        ${bgsBlock}
 
         <h3 style="margin-top: 1rem;">Modifier advisory</h3>
         <p>${escapeHtml(mod.advisory || "—")}</p>

@@ -1,10 +1,8 @@
 /* ============================================================================
    Report stylesheet
    ----------------------------------------------------------------------------
-   Reports are intentionally LIGHT (printable, PDF-friendly), unlike the
-   rest of the app which is dark + gold. This sheet is loaded on top of
-   the main stylesheet for the in-browser view, and on its own for the
-   PDF render (so the PDF is purely light).
+   Reports are intentionally LIGHT (printable, PDF-friendly) — clean white
+   surface with calm blue accents that match the rest of the app.
    ============================================================================ */
 
 @page {
@@ -14,7 +12,7 @@
 
 .report-body {
   background: #ffffff;
-  color: #1a1a1a;
+  color: #1f2a35;
   margin: 0;
   padding: 0;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -23,8 +21,8 @@
 
 /* Toolbar above the report — only shown in browser view */
 .report-toolbar {
-  background: #f4ede0;
-  border-bottom: 1px solid #d8c89c;
+  background: #eef3f8;
+  border-bottom: 1px solid #c7d6e3;
   padding: 0.85rem 2rem;
   display: flex;
   gap: 0.6rem;
@@ -41,7 +39,7 @@
   margin: 2rem auto;
   background: #ffffff;
   padding: 2.5rem 3rem;
-  border: 1px solid #e3dccd;
+  border: 1px solid #d6e0eb;
   border-radius: 6px;
 }
 @media print {
@@ -66,7 +64,7 @@
 .report-head h1 {
   margin: 0.25rem 0 0.4rem 0;
   font-size: 1.55rem;
-  color: #1a1a1a;
+  color: #1f4f7a;
   font-weight: 700;
   line-height: 1.2;
 }
@@ -74,13 +72,13 @@
   margin: 0;
   font-size: 0.75rem;
   letter-spacing: 3px;
-  color: #8a6f30;
+  color: #2f6ea8;
   font-weight: 700;
   text-transform: uppercase;
 }
 .report-sub {
   margin: 0;
-  color: #6a6a6a;
+  color: #5b6a78;
   font-size: 0.9rem;
 }
 .report-meta {
@@ -94,25 +92,25 @@
 
 .report hr {
   border: none;
-  border-top: 1px solid #e3dccd;
+  border-top: 1px solid #d6e0eb;
   margin: 1.5rem 0;
 }
 
 .report h2 {
   font-size: 1.1rem;
-  color: #1a1a1a;
+  color: #1f4f7a;
   font-weight: 700;
   margin: 1.4rem 0 0.6rem 0;
   padding-bottom: 0.3rem;
-  border-bottom: 1px solid #ede5d2;
+  border-bottom: 1px solid #e3ebf2;
 }
 .report h3 {
   font-size: 0.95rem;
-  color: #444;
+  color: #2f6ea8;
   margin: 1rem 0 0.4rem 0;
 }
 
-/* Key-value tables — used everywhere in reports */
+/* Key-value tables */
 .kv {
   width: 100%;
   border-collapse: collapse;
@@ -124,34 +122,62 @@
 }
 .kv td:first-child {
   width: 38%;
-  color: #777;
+  color: #5b6a78;
   font-weight: 600;
 }
 .kv td:last-child {
-  color: #1a1a1a;
+  color: #1f2a35;
 }
 .kv-tight td { padding: 0.15rem 0.5rem; }
 
 .report .mono {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 0.88rem;
-  color: #444;
+  color: #2f6ea8;
 }
 
-.report .muted { color: #777; }
+.report .muted { color: #5b6a78; }
 
-.report .good { color: #2f7a3a; }
-.report .bad  { color: #a43d34; }
+.report .good { color: #3a8b54; }
+.report .bad  { color: #b94a48; }
+
+/* Subtle BGS-disagreement note for printed report (NOT a red error) */
+.report .bgs-note {
+  margin: 0.5rem 0 0.6rem 0;
+  padding: 0.65rem 0.85rem;
+  border-left: 3px solid #3f88c8;
+  background: #eef3f8;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #1f2a35;
+}
+.report .bgs-note strong { color: #1f4f7a; }
 
 .report-foot {
   margin-top: 1.5rem;
+  font-size: 0.82rem;
+}
+.report-foot p { margin: 0 0 0.5rem 0; color: #5b6a78; }
+.report-foot .disclaimer {
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid #2f6ea8;
+  background: #eef3f8;
+  border-radius: 4px;
+  color: #1f2a35;
+  margin-bottom: 0.75rem;
+}
+.report-foot .disclaimer strong { color: #1f4f7a; }
+.report-foot .credit {
+  text-align: center;
+  margin-top: 0.6rem;
+  color: #5b6a78;
   font-size: 0.8rem;
 }
-.report-foot p { margin: 0; color: #888; }
+.report-foot .credit a { color: #2f6ea8; text-decoration: none; }
 
 /* History entries */
 .history-entry {
-  border: 1px solid #ede5d2;
+  border: 1px solid #e3ebf2;
   border-radius: 6px;
   padding: 0.85rem 1rem;
   margin-bottom: 0.75rem;
@@ -160,5 +186,5 @@
 .history-entry h3 {
   margin: 0 0 0.5rem 0;
   font-size: 0.95rem;
-  color: #1a1a1a;
+  color: #1f4f7a;
 }

@@ -17,7 +17,7 @@ pre-filtered set.
 How the aggregation works
 -------------------------
 After encoding, a raw feature can correspond to multiple columns
-(Soil.Texture → 3 one-hot columns, for example). Boruta operates at the
+(Soil.Type → 3 one-hot columns, for example). Boruta operates at the
 column level, so we aggregate: a raw feature is "selected" if Boruta
 confirms or marks tentative ANY of its encoded columns.
 
@@ -61,7 +61,7 @@ POSITIVE_LABEL = "High Potential"
 # Benson dropped it on the old encoding, but we want Boruta to make that
 # call again on the new one.
 ALL_CANDIDATES = [
-    "Soil.Texture",
+    "Soil.Type",
     "Soil.Colour",
     "Geological.Features",
     "Elevation",
@@ -75,11 +75,14 @@ ORDERED_FEATURES = {
     "Elevation":                         ["Gentle", "Moderate", "Steep"],
     "Drainage.Density":                  ["Low", "Medium", "High"],
     "Natural.vegetation..tree..height":  ["Short", "Medium", "Tall"],
+    "Natural.vegetation..tree..distribution":  ["Sparse", "Dense", "Medium"], 
+    "Natural.vegetation..tree..distribution":  ["Bare Grasslands", "Shrubs", "Combination (Wooded Grasslands)"], 
+    
     "Natural.vegetation..tree..vigour":  [
         "Absent", "Low Water Demand", "Moderate Water Demand", "High Water Demand",
     ],
 }
-UNORDERED_FEATURES = ["Soil.Texture", "Geological.Features", "Soil.Colour"]
+UNORDERED_FEATURES = ["Soil.Type", "Geological.Features", "Soil.Colour"]
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +124,7 @@ def encoded_to_raw_map(preprocessor):
         elif transformer_name == "unordered":
             ohe = preprocessor.named_transformers_["unordered"]
             ohe_names = ohe.get_feature_names_out(columns)
-            # ohe_names look like "Soil.Texture_Clay" — the prefix before
+            # ohe_names look like "Soil.Type_Clay" — the prefix before
             # the first underscore-with-known-category is the raw feature.
             for ohe_name in ohe_names:
                 # Find which raw column this name was generated from

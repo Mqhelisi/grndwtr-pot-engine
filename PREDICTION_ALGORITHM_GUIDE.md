@@ -103,7 +103,7 @@ relates to whether groundwater is likely to be present.
 
 | What | What we're looking for | Why it matters |
 |---|---|---|
-| **Soil texture** | Clay, Loam, or Sand | Sand and loam let water soak in; heavy clay tends to shed water |
+| **Soil Type** | Clay, Loam, or Sand | Sand and loam let water soak in; heavy clay tends to shed water |
 | **Geological features** | Granite-like or Limestone-like | Already filled in from the BGS lookup; can be overridden |
 | **Elevation / slope** | Gentle, Moderate, or Steep | Gentle ground holds water; steep ground sheds it |
 | **Vegetation vigour** | Absent / Low / Moderate / High water demand | Lush water-loving trees suggest a high water table |
@@ -156,8 +156,8 @@ Score).
 | Active hard-rock or large-scale mining within 500 m | **−3** |
 | Artisanal mining or wetland drainage | **−2** |
 | Urban/peri-urban development > 30% impervious | **−2** |
-| Significant deforestation or Eucalyptus/Pine plantation | **−1** |
-| Active irrigated agriculture using borehole water | **−1** |
+| Deforestation | **−1** |
+| Functional irrigated agriculture using borehole water | **−1** |
 | No significant pressure | **0** |
 | Active farm dam or small weir within 300 m | **+1** |
 
