@@ -1,97 +1,134 @@
 # Groundwater Potential Mapping System — Flask edition
 
-A rebuild of the Streamlit prototype as a proper Flask application, with
-SQLite-backed storage for saved GPS locations.
+Decision-support web app for identifying groundwater potential in
+Zimbabwe. Combines a Boruta-selected SVM classifier with the BGS Africa
+Groundwater Atlas as a regional reference.
 
-## What's in here
+## Quick start
+
+```bash
+# 1. Set up a virtual environment
+python -m venv .venv
+source .venv/bin/activate           # Windows: .venv\Scripts\activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Run the app
+python app.py
+# → http://localhost:5000
+```
+
+If you're upgrading from a previous version of the app, your existing
+`instance/groundwater.db` will be migrated in place on first start
+(new columns are added automatically).
+
+## What's in this project
 
 ```
 groundwater_flask/
 ├── app.py                  Flask app + page and API routes
 ├── config.py               Single place for configuration (DB URL, paths)
 ├── models.py               SQLAlchemy schema (SavedLocation table)
-├── ml.py                   Model loading + prediction pipeline
+├── ml.py                   Loads the SVM pipeline at request time
+├── hydrogeology.py         BGS shapefile loader + decoder
+├── confidence.py           TCS, LUPS modifier, BGS cross-check, expert-review triggers
+├── retrain_model.py        Offline script to (re-)build the ML pipeline
+├── feature_selection.py    Offline script to (re-)run Boruta
 ├── requirements.txt
-├── README.md               (this file)
-├── ROADMAP_POSTGRES.md     How to switch SQLite → PostgreSQL later
 │
-├── artifacts/              Trained model + dataset (unchanged from original)
-│   ├── svm_model.pkl
-│   ├── scaler.pkl
-│   ├── encoder.pkl
-│   ├── selected_features.pkl
-│   └── augmented_data.csv
+├── README.md                    (this file)
+├── PREDICTION_ALGORITHM_GUIDE.md  Plain-language explanation of the full pipeline
+├── PREDICTION_ALGORITHM_CHANGELOG.md  Log of every algorithm change made
+├── ROADMAP_POSTGRES.md           How to switch SQLite → PostgreSQL later
 │
-├── instance/               SQLite database lives here (auto-created)
-│   └── groundwater.db      (created on first run)
+├── artifacts/
+│   ├── pipeline.pkl                ★ Full sklearn Pipeline
+│   ├── selected_features.pkl       List of features the model uses
+│   ├── encoding_metadata.pkl       Which features are ordered, in what order
+│   ├── augmented_data.csv          Training data
+│   └── hydrogeology/               BGS Zimbabwe shapefile + licence + readme
+│
+├── instance/groundwater.db (auto-created on first run)
 │
 ├── static/
-│   ├── css/style.css       Dark + gold theme (preserved from the original)
+│   ├── css/
+│   │   ├── style.css       Dark + gold theme
+│   │   └── report.css      Light/print theme for site-survey + history reports
 │   └── js/
-│       ├── geo.js          GPS detect + map + save flow
-│       └── predict.js      Form submission for predictions
+│       ├── geo.js          GPS detect + map + hydrogeology lookup + auto-fill
+│       ├── predict.js      Predictor form + supplementary obs + LUPS + prediction
+│       ├── save.js         Save-survey panel
+│       ├── saved.js        Saved Locations page (delete + history modal)
+│       └── expert_review.js Expert Review decision modal
 │
 └── templates/              Jinja templates (one per page)
     ├── base.html
     ├── home.html
     ├── predict.html
+    ├── saved.html
+    ├── expert_review.html  ← NEW: review queue
+    ├── data_sources.html   ← NEW: BGS attribution + dataset status
+    ├── report_site.html    Per-survey printable report
+    ├── report_history.html Date-range printable report
     ├── model_info.html
     ├── feature_guide.html
     └── about.html
 ```
 
-## Running it
+## What's new in this version
+
+The pipeline now goes well beyond the SVM's binary output. After the
+classifier runs, three more passes refine the result:
+
+1. **BGS regional-baseline cross-check.** Every GPS point is spatial-
+   joined against the BGS Africa Groundwater Atlas Zimbabwe extract.
+   The model's binary output is compared to the BGS yield class for the
+   polygon — disagreement raises a flag.
+
+2. **Total Confidence Score (TCS).** A 0–10 score with four components:
+   data completeness, geology match quality, biophysical indicator
+   convergence, BGS baseline alignment.
+
+3. **Land Use Pressure (LUPS) modifier.** The surveyor ticks land-use
+   factors within 1 km. Moderate pressure reduces TCS; severe pressure
+   downgrades a High prediction to Low.
+
+If any of TCS &lt; 5, LUPS ≤ −3, low geology confidence, no supportive
+indicators, or BGS disagreement fire, the prediction is routed to the
+Expert Review queue.
+
+See `PREDICTION_ALGORITHM_GUIDE.md` for a plain-language walkthrough,
+and `PREDICTION_ALGORITHM_CHANGELOG.md` for the full change log.
+
+## Hydrogeology data
+
+The system ships with the BGS Africa Groundwater Atlas Zimbabwe extract
+under `artifacts/hydrogeology/`. See the README and LICENCE in that
+folder. Attribution required: CC BY-SA 4.0.
+
+## Endpoints
+
+| Path | Purpose |
+|---|---|
+| `/` | Home |
+| `/predict` | Main prediction workflow |
+| `/saved` | Saved surveys table |
+| `/expert-review` | Expert review queue |
+| `/data-sources` | BGS attribution + dataset status |
+| `/saved/<id>/report` | Per-survey report (HTML) |
+| `/saved/<id>/report.pdf` | Per-survey report (PDF) |
+| `/history-report?start=…&end=…` | Date-range report |
+| `/api/predict` (POST) | Run the full pipeline |
+| `/api/locations` (POST/GET/DELETE) | Save / list / delete surveys |
+| `/api/locations/<id>/expert-review` (POST) | Record expert decision |
+| `/api/hydrogeology?lat=…&lon=…` | Geology lookup at a point |
+| `/api/saved.geojson` | Export all surveys as GeoJSON |
+
+## Testing
 
 ```bash
-python -m venv venv
-source venv/bin/activate            # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
+python -c "from app import app; print('App OK')"
 ```
 
-Open http://localhost:5000 in your browser. The SQLite database file is
-created automatically the first time the app starts.
-
-## How the GPS flow works
-
-1. On the **Predict** page, click **📍 Detect My Location**.
-2. The browser prompts for location access — allow it.
-3. The detected coordinates appear, and a marker is dropped on the map.
-4. Type an optional label (e.g. "Site A — Bulawayo north") and click
-   **💾 Save this location**. The fix is written to SQLite via
-   `POST /api/locations`.
-5. To re-detect, click the same button again (it's relabelled
-   **↻ Re-detect Location** after the first fix).
-
-The Flask server logs every save, so the developer console shows lines like:
-
-```
-[INFO] Saved location #3 — lat=-20.1456, lon=28.5832, label='Site A'
-```
-
-## Inspecting saved locations
-
-The database is a single file: `instance/groundwater.db`.
-
-- Quickest: open it with the **DB Browser for SQLite** (free, all platforms).
-- From the command line:
-  ```bash
-  sqlite3 instance/groundwater.db "SELECT * FROM saved_locations;"
-  ```
-- Via the API:
-  ```bash
-  curl http://localhost:5000/api/locations
-  ```
-
-## API surface
-
-| Method | Path                | Body                                             | Returns                                      |
-| ------ | ------------------- | ------------------------------------------------ | -------------------------------------------- |
-| POST   | `/api/predict`      | `{ feature_name: value, … }`                     | `{ prediction, label, *_pct }`               |
-| POST   | `/api/locations`    | `{ latitude, longitude, label? }`                | `{ id, latitude, longitude, label, created_at }` |
-| GET    | `/api/locations`    | —                                                | `[ {…}, … ]` newest first, max 500           |
-
-## Switching to PostgreSQL later
-
-See **ROADMAP_POSTGRES.md** in this folder. It's a one-line code change
-plus standing up a Postgres instance.
+Should print `App OK` after the hydrogeology layer loads.

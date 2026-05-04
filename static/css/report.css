@@ -1,0 +1,164 @@
+/* ============================================================================
+   Report stylesheet
+   ----------------------------------------------------------------------------
+   Reports are intentionally LIGHT (printable, PDF-friendly), unlike the
+   rest of the app which is dark + gold. This sheet is loaded on top of
+   the main stylesheet for the in-browser view, and on its own for the
+   PDF render (so the PDF is purely light).
+   ============================================================================ */
+
+@page {
+  size: A4;
+  margin: 18mm 16mm 22mm 16mm;
+}
+
+.report-body {
+  background: #ffffff;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  line-height: 1.55;
+}
+
+/* Toolbar above the report — only shown in browser view */
+.report-toolbar {
+  background: #f4ede0;
+  border-bottom: 1px solid #d8c89c;
+  padding: 0.85rem 2rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+@media print {
+  .no-print { display: none !important; }
+}
+
+/* The actual report card */
+.report {
+  max-width: 760px;
+  margin: 2rem auto;
+  background: #ffffff;
+  padding: 2.5rem 3rem;
+  border: 1px solid #e3dccd;
+  border-radius: 6px;
+}
+@media print {
+  .report {
+    margin: 0;
+    border: none;
+    padding: 0;
+    max-width: none;
+  }
+}
+
+.report-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+.report-head > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.report-head h1 {
+  margin: 0.25rem 0 0.4rem 0;
+  font-size: 1.55rem;
+  color: #1a1a1a;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.report-eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 3px;
+  color: #8a6f30;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.report-sub {
+  margin: 0;
+  color: #6a6a6a;
+  font-size: 0.9rem;
+}
+.report-meta {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #555;
+  flex-shrink: 0;
+  min-width: 145px;
+}
+.report-meta p { margin: 0 0 0.5rem 0; }
+
+.report hr {
+  border: none;
+  border-top: 1px solid #e3dccd;
+  margin: 1.5rem 0;
+}
+
+.report h2 {
+  font-size: 1.1rem;
+  color: #1a1a1a;
+  font-weight: 700;
+  margin: 1.4rem 0 0.6rem 0;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #ede5d2;
+}
+.report h3 {
+  font-size: 0.95rem;
+  color: #444;
+  margin: 1rem 0 0.4rem 0;
+}
+
+/* Key-value tables — used everywhere in reports */
+.kv {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.kv td {
+  padding: 0.35rem 0.5rem;
+  vertical-align: top;
+}
+.kv td:first-child {
+  width: 38%;
+  color: #777;
+  font-weight: 600;
+}
+.kv td:last-child {
+  color: #1a1a1a;
+}
+.kv-tight td { padding: 0.15rem 0.5rem; }
+
+.report .mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.88rem;
+  color: #444;
+}
+
+.report .muted { color: #777; }
+
+.report .good { color: #2f7a3a; }
+.report .bad  { color: #a43d34; }
+
+.report-foot {
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+}
+.report-foot p { margin: 0; color: #888; }
+
+/* History entries */
+.history-entry {
+  border: 1px solid #ede5d2;
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+  page-break-inside: avoid;
+}
+.history-entry h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+}

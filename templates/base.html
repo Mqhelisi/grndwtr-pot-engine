@@ -15,8 +15,11 @@
       <nav>
         <a href="{{ url_for('home')              }}" class="{{ 'active' if page == 'home'           else '' }}">🏠 Home</a>
         <a href="{{ url_for('predict_page')      }}" class="{{ 'active' if page == 'predict'        else '' }}">🔮 Predict</a>
+        <a href="{{ url_for('saved_page') }}" class="{{ 'active' if page == 'saved' else '' }}">💾 Saved Locations</a>
+        <a href="{{ url_for('expert_review_page')}}" class="{{ 'active' if page == 'expert-review'  else '' }}">🧐 Expert Review</a>
         <a href="{{ url_for('model_info_page')   }}" class="{{ 'active' if page == 'model-info'     else '' }}">🧠 Model Info</a>
         <a href="{{ url_for('feature_guide_page')}}" class="{{ 'active' if page == 'feature-guide'  else '' }}">📘 Feature Guide</a>
+        <a href="{{ url_for('data_sources_page') }}" class="{{ 'active' if page == 'data-sources'   else '' }}">📚 Data Sources</a>
         <a href="{{ url_for('about_page')        }}" class="{{ 'active' if page == 'about'          else '' }}">ℹ️ About</a>
       </nav>
     </aside>

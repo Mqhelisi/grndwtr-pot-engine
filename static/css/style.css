@@ -9,10 +9,10 @@
   --bg-base:      #0b0b0b;
   --bg-card:      #131313;
   --bg-card-2:    #1a1a1a;
-  --gold:         #f5c77a;
-  --gold-bright:  #ffd98e;
-  --gold-soft:    rgba(245, 199, 122, 0.20);
-  --gold-glow:    rgba(245, 199, 122, 0.40);
+  --gold:         #7abef5;
+  --gold-bright:  #8ec3ff;
+  --gold-soft:    rgba(122, 245, 225, 0.2);
+  --gold-glow:    rgba(122, 227, 245, 0.4);
   --text:         #f5c77a;
   --text-mute:    #b8a785;
   --text-on-gold: #1a1a1a;
@@ -309,3 +309,271 @@ select:focus, input[type="text"]:focus, textarea:focus {
 
 /* Leaflet's default link colour clashes with our palette — gentle override */
 .leaflet-container a { color: var(--gold-bright) !important; }
+
+/* ============================================================================
+   Additions for Saved Locations + Site Survey flow
+   ============================================================================ */
+
+/* ---------- Readiness checklist (Predict page, save panel) -------------- */
+.readiness {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+.readiness li {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.4rem 0;
+  color: var(--text-mute);
+  font-size: 0.95rem;
+}
+.readiness .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  border: 1px solid var(--gold-soft);
+  flex-shrink: 0;
+}
+.readiness li.done {
+  color: var(--success);
+}
+.readiness li.done .dot {
+  background: var(--success);
+  border-color: var(--success);
+  box-shadow: 0 0 6px rgba(109, 191, 115, 0.6);
+}
+
+/* ---------- Saved Locations table -------------------------------------- */
+.saved-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.saved-table th,
+.saved-table td {
+  text-align: left;
+  padding: 0.7rem 0.6rem;
+  border-bottom: 1px solid var(--gold-soft);
+}
+.saved-table th {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(245, 199, 122, 0.04);
+}
+.saved-table tbody tr:hover {
+  background: rgba(245, 199, 122, 0.04);
+}
+.saved-table .mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--text-mute);
+  font-size: 0.88rem;
+}
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.pill-good {
+  color: var(--success);
+  background: rgba(109, 191, 115, 0.10);
+  border-color: rgba(109, 191, 115, 0.40);
+}
+.pill-bad {
+  color: var(--danger);
+  background: rgba(226, 92, 92, 0.10);
+  border-color: rgba(226, 92, 92, 0.40);
+}
+
+/* ---------- Button variants -------------------------------------------- */
+.btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(226, 92, 92, 0.45);
+  box-shadow: none;
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(226, 92, 92, 0.10);
+  box-shadow: 0 0 10px rgba(226, 92, 92, 0.20);
+}
+
+/* ---------- Modal ------------------------------------------------------ */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-backdrop.open {
+  display: flex;
+}
+.modal-card {
+  background: linear-gradient(145deg, var(--bg-card), var(--bg-card-2));
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 0 40px rgba(245, 199, 122, 0.30);
+}
+.modal-card h3 {
+  margin-top: 0;
+}
+.modal-card input[type="date"] {
+  width: 100%;
+  background: #0f0f0f;
+  color: #fff;
+  border: 1px solid var(--gold-soft);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  font-size: 1rem;
+  font-family: inherit;
+  margin-bottom: 0.5rem;
+}
+
+/* ============================================================================
+   ADDITIONS for v2: checklists, TCS bars, key/value tables, override row.
+   ============================================================================ */
+
+/* ---------- Checklists (supplementary obs + land use) ------------------- */
+.checklist {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(245, 199, 122, 0.04);
+  border: 1px solid var(--gold-soft);
+  border-radius: 10px;
+  color: var(--text-mute);
+  font-weight: normal;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.checklist-item:hover {
+  background: rgba(245, 199, 122, 0.08);
+  border-color: var(--gold-soft);
+}
+.checklist-item input[type="checkbox"] {
+  width: auto;
+  margin: 0.2rem 0 0 0;
+  flex-shrink: 0;
+}
+.checklist-item.lups-bad  { border-left: 3px solid var(--danger); }
+.checklist-item.lups-good { border-left: 3px solid var(--success); }
+.checklist-item .lups-weight {
+  margin-left: auto;
+  font-style: normal;
+  font-weight: 700;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--gold-bright);
+  font-size: 0.85rem;
+}
+
+/* ---------- Inline mono span ------------------------------------------- */
+.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--gold-bright);
+}
+
+/* ---------- Pills ------------------------------------------------------ */
+.pill {
+  display: inline-block;
+  font-size: 0.78rem;
+  padding: 0.15rem 0.55rem;
+  background: rgba(245, 199, 122, 0.10);
+  border: 1px solid var(--gold-soft);
+  border-radius: 999px;
+  color: var(--text-mute);
+}
+.pill-good {
+  color: var(--success);
+  border-color: rgba(109, 191, 115, 0.40);
+  background: rgba(109, 191, 115, 0.10);
+}
+.pill-bad {
+  color: var(--danger);
+  border-color: rgba(226, 92, 92, 0.40);
+  background: rgba(226, 92, 92, 0.10);
+}
+
+/* ---------- KV (key/value) table -------------------------------------- */
+.kv {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+  margin: 0.4rem 0;
+}
+.kv td {
+  padding: 0.35rem 0.85rem 0.35rem 0;
+  vertical-align: top;
+}
+.kv td:first-child {
+  color: var(--text-mute);
+  width: 35%;
+  min-width: 9rem;
+}
+.kv-tight td { padding: 0.25rem 0.6rem 0.25rem 0; }
+
+/* ---------- TCS confidence breakdown ---------------------------------- */
+.tcs-table {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.5rem 0;
+}
+.tcs-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 60px;
+  grid-template-areas:
+    "label bar score"
+    "explain explain explain";
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+}
+.tcs-label  { grid-area: label;  font-weight: 600; color: var(--gold); font-size: 0.92rem; }
+.tcs-bar    { grid-area: bar; height: 8px; background: rgba(245,199,122,0.10); border-radius: 4px; overflow: hidden; }
+.tcs-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); transition: width 0.3s ease; }
+.tcs-score  { grid-area: score; font-family: ui-monospace, monospace; color: var(--gold-bright); text-align: right; font-weight: 700; }
+.tcs-explain { grid-area: explain; font-size: 0.85rem; }
+
+/* ---------- Result detail panel margin ------------------------------- */
+#result-detail .card { margin-bottom: 0; }
+
+/* ---------- Saved table extras for new TCS / review columns ---------- */
+.saved-table .tcs-cell      { font-family: ui-monospace, monospace; color: var(--gold-bright); }
+.saved-table .review-flag   { color: var(--danger); font-weight: 700; }
+
+/* ---------- Expert review page --------------------------------------- */
+.review-card {
+  border: 1px solid rgba(226, 92, 92, 0.30);
+  background: rgba(226, 92, 92, 0.04);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.review-reasons {
+  margin: 0.4rem 0 0.6rem 1.2rem;
+  color: var(--text-mute);
+  font-size: 0.9rem;
+}
