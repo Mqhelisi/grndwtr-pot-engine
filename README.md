@@ -29,9 +29,10 @@ If you're upgrading from a previous version of the app, your existing
 groundwater_flask/
 ├── app.py                  Flask app + page and API routes
 ├── config.py               Single place for configuration (DB URL, paths)
+├── timeutil.py             UTC ↔ CAT (Zimbabwean local time, GMT+2) helpers
 ├── models.py               SQLAlchemy schema (SavedLocation table)
 ├── ml.py                   Loads the SVM pipeline at request time
-├── hydrogeology.py         BGS shapefile loader + decoder
+├── hydrogeology.py         BGS shapefile loader + decoder + GeoJSON export
 ├── confidence.py           TCS, LUPS modifier, BGS cross-check, expert-review triggers
 ├── retrain_model.py        Offline script to (re-)build the ML pipeline
 ├── feature_selection.py    Offline script to (re-)run Boruta
@@ -53,7 +54,7 @@ groundwater_flask/
 │
 ├── static/
 │   ├── css/
-│   │   ├── style.css       Dark + gold theme
+│   │   ├── style.css       Soothing blue + light-gray theme
 │   │   └── report.css      Light/print theme for site-survey + history reports
 │   └── js/
 │       ├── geo.js          GPS detect + map + hydrogeology lookup + auto-fill
@@ -67,8 +68,8 @@ groundwater_flask/
     ├── home.html
     ├── predict.html
     ├── saved.html
-    ├── expert_review.html  ← NEW: review queue
-    ├── data_sources.html   ← NEW: BGS attribution + dataset status
+    ├── expert_review.html
+    ├── data_sources.html
     ├── report_site.html    Per-survey printable report
     ├── report_history.html Date-range printable report
     ├── model_info.html
@@ -101,6 +102,21 @@ Expert Review queue.
 See `PREDICTION_ALGORITHM_GUIDE.md` for a plain-language walkthrough,
 and `PREDICTION_ALGORITHM_CHANGELOG.md` for the full change log.
 
+## v1 release notes
+
+A few presentation-level details worth knowing before deploying:
+
+- **All timestamps in the UI and reports are Central Africa Time (CAT,
+  GMT+2) — Zimbabwean local time.** The database itself stores naive
+  CAT timestamps (no DST in Zimbabwe, so the +02:00 offset is fixed and
+  unambiguous). The JSON API surfaces ISO-8601 strings with explicit
+  `+02:00` offsets, so consumers always know what they're looking at.
+- **Predictor labels in the UI are friendly names** (e.g. "Soil Type",
+  "Vegetation Vigour", "Drainage Density"). The trained model's internal
+  feature names (e.g. `Soil.Texture`, `Natural.vegitation..tree..vigour`)
+  are unchanged — the friendly names are a thin Jinja-side layer so we
+  don't risk silently breaking the encoder.
+
 ## Hydrogeology data
 
 The system ships with the BGS Africa Groundwater Atlas Zimbabwe extract
@@ -123,6 +139,7 @@ folder. Attribution required: CC BY-SA 4.0.
 | `/api/locations` (POST/GET/DELETE) | Save / list / delete surveys |
 | `/api/locations/<id>/expert-review` (POST) | Record expert decision |
 | `/api/hydrogeology?lat=…&lon=…` | Geology lookup at a point |
+| `/api/hydrogeology.geojson` | The BGS shapefile as GeoJSON (used by the Model Info choropleth) |
 | `/api/saved.geojson` | Export all surveys as GeoJSON |
 
 ## Testing

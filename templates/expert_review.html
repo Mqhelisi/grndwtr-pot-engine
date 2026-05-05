@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Expert Review — Groundwater Potential Mapping System{% endblock %}
+{% block title %}Expert Review, Groundwater Potential Mapping System{% endblock %}
 
 {% block content %}
 
@@ -34,7 +34,7 @@
                 {% if r.label %} — {{ r.label }}{% endif %}
               </h3>
               <p class="muted" style="font-size: 0.88rem; margin: 0;">
-                {{ r.created_at[:16].replace('T', ' ') }} UTC ·
+                {{ r.created_at[:16].replace('T', ' ') }} CAT ·
                 <span class="mono">{{ '%.5f'|format(r.latitude) }}, {{ '%.5f'|format(r.longitude) }}</span>
               </p>
             </div>

@@ -44,6 +44,8 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, text
 
+from timeutil import now_cat, format_cat_iso
+
 db = SQLAlchemy()
 
 
@@ -101,7 +103,12 @@ class SavedLocation(db.Model):
     tcs                  = db.Column(db.Integer,     nullable=True, index=True)
     needs_expert_review  = db.Column(db.Boolean,     nullable=False, default=False, index=True)
 
-    created_at           = db.Column(db.DateTime, default=datetime.utcnow,
+    # Stored as a NAIVE datetime in CAT (Zimbabwean local time, UTC+02:00).
+    # We keep the column naive because SQLAlchemy + SQLite would otherwise
+    # require all reads/writes to be timezone-aware, which is awkward for
+    # an in-place migration. The fixed +02:00 offset means there's no
+    # ambiguity and no DST gotcha.
+    created_at           = db.Column(db.DateTime, default=now_cat,
                                      nullable=False, index=True)
 
     # ------------------------------------------------------------------
@@ -153,7 +160,7 @@ class SavedLocation(db.Model):
             "final_class":    self.final_class,
             "tcs":            self.tcs,
             "needs_expert_review": bool(self.needs_expert_review),
-            "created_at":     self.created_at.isoformat() + "Z",
+            "created_at":     format_cat_iso(self.created_at),
         }
 
     def to_summary_dict(self):
@@ -169,7 +176,7 @@ class SavedLocation(db.Model):
             "high_pct":      raw.get("high_potential_pct") or pred.get("high_potential_pct"),
             "tcs":           self.tcs,
             "needs_review":  bool(self.needs_expert_review),
-            "created_at":    self.created_at.isoformat() + "Z",
+            "created_at":    format_cat_iso(self.created_at),
         }
 
     def __repr__(self):

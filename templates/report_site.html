@@ -38,7 +38,7 @@
         <p class="report-sub">Groundwater Potential Mapping System</p>
       </div>
       <div class="report-meta">
-        <p><strong>Survey date</strong><br>{{ loc.created_at[:16].replace('T', ' ') }} UTC</p>
+        <p><strong>Survey date</strong><br>{{ loc.created_at[:16].replace('T', ' ') }} CAT</p>
         <p><strong>Report generated</strong><br>{{ generated_at }}</p>
       </div>
     </header>
@@ -91,7 +91,7 @@
       <table class="kv">
         {% for k, v in vals.items() %}
           <tr>
-            <td>{{ k }}</td>
+            <td>{{ pretty_predictor(k) }}</td>
             <td>
               {{ v }}
               {% if k|lower|replace(' ', '')|replace('.', '')|replace('_', '') == 'geologicalfeatures' %}

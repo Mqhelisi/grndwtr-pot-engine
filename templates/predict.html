@@ -18,14 +18,14 @@
     <h1>🔮 Predict Groundwater Potential</h1>
     <p class="lead">
       Detect your location, review the hydrogeological context, fill in
-      the predictor values, record vegetation, recharge and seasonal
+      the predictor values, record vegetation, recharge and Land Use
       observations, then run the prediction and save the full survey.
     </p>
-    {% if model_name %}
+    <!-- {% if model_name %}
       <p class="muted" style="font-size: 0.85rem; margin-top: -0.4rem;">
-        Powered by: <strong>{{ model_name }}</strong> classifier
+        Powered by: <strong>Support Vector Machines</strong> and optimized by <strong>{{ model_name }}</strong> classifier
       </p>
-    {% endif %}
+    {% endif %} -->
   </div>
 
   <!-- ============== 1 · GPS PANEL ============== -->
@@ -43,9 +43,9 @@
   <div id="hydro-card" class="card" style="display: none;">
     <h2>🗺️ 2 · Hydrogeological context</h2>
     <p class="muted" style="font-size: 0.9rem;">
-      Auto-derived from the BGS Africa Groundwater Atlas (1:5M scale).
-      The <strong>geology class</strong> used by the model is automatically
-      inferred from the polygon at your GPS point — no manual selection
+      Auto-derived from the British Geological Survey (BGS) Africa Groundwater Atlas (1:5M scale).
+      The <strong>hydrogeology class</strong> used by the model is automatically
+      inferred from the polygon at your GPS point, no manual selection
       is needed.
     </p>
     <div id="hydro-body"></div>
@@ -66,7 +66,7 @@
     {% else %}
       <p class="muted">
         Select values for each predictor. Tick <em>inferred</em> on any
-        value you couldn't directly observe — this lowers data
+        value you couldn't directly observe, this lowers data
         completeness in the confidence score.
       </p>
 
@@ -79,7 +79,7 @@
                prediction request. The user-facing display will show what
                was inferred. #}
             <div id="geology-inferred-card">
-              <label>🪨 {{ feature }} <span class="muted" style="font-weight: normal;">(auto-inferred)</span></label>
+              <label>🪨 {{ pretty_predictor(feature) }} <span class="muted" style="font-weight: normal;">(auto-inferred)</span></label>
               <div class="inferred-display">
                 <span class="ind-label">From BGS map data</span>
                 <span class="ind-value" id="geology-inferred-value">— pending location detection —</span>
@@ -94,7 +94,7 @@
             </div>
           {% else %}
             <div>
-              <label for="feat-{{ loop.index }}">🔸 {{ feature }}</label>
+              <label for="feat-{{ loop.index }}">🔸 {{ pretty_predictor(feature) }}</label>
               <select id="feat-{{ loop.index }}" data-feature="{{ feature }}">
                 {% for opt in options %}
                   <option value="{{ opt }}">{{ opt }}</option>
@@ -115,7 +115,7 @@
   <div class="card">
     <h2>🌱 4 · Vegetation &amp; recharge indicators</h2>
     <p class="muted">
-      Surface-level indicators that support (or contradict) the model
+      Surface-level indicators that check the model
       prediction. Each one feeds the <em>indicator convergence</em>
       component of the confidence score.
     </p>
@@ -145,7 +145,7 @@
         <label for="veg-cover">🌾 Vegetation cover</label>
         <select id="veg-cover" data-supp-select="vegetation_cover">
           <option value="">— not recorded —</option>
-          <option value="Bare">Bare</option>
+          <option value="Forest">Forest</option>
           <option value="Grasslands">Grasslands</option>
           <option value="Shrubs">Shrubs</option>
           <option value="Wooded Grasslands">Wooded Grasslands</option>
@@ -156,8 +156,7 @@
         <label for="recharge">💧 Groundwater recharge</label>
         <select id="recharge" data-supp-select="groundwater_recharge">
           <option value="">— not recorded —</option>
-          <option value="Invisible">Invisible</option>
-          <option value="Visible">Visible</option>
+          <option value="Man Made">Man Made</option>
           <option value="Natural Streams">Natural Streams</option>
         </select>
       </div>
@@ -173,29 +172,20 @@
     </p>
 
     <div class="checklist">
-      <label class="checklist-item">
-        <input type="checkbox" data-supp="feeder_stream_present">
-        <span><strong>Feeder stream</strong> — surface runoff arrives at the location from an identifiable upland feeder stream</span>
-      </label>
+      
       <label class="checklist-item">
         <input type="checkbox" data-supp="indicator_plants">
-        <span><strong>Phreatophyte indicator plants</strong> — Figs (<em>Ficus</em>), Wild Date Palm (<em>Phoenix reclinata</em>), Waterberry (<em>Syzygium cordatum</em>), or similar</span>
+        <span><strong>Phreatophyte indicator plants</strong> — Figs (<em>Ficus</em>), Wild Date Palm (<em>Phoenix reclinata</em>), or similar</span>
       </label>
-      <label class="checklist-item">
-        <input type="checkbox" data-supp="seasonal_water_evidence">
-        <span><strong>Seasonal water evidence</strong> — wet-season pans, seasonal channels, or dry riverbeds within 500 m</span>
-      </label>
+      
       <label class="checklist-item">
         <input type="checkbox" data-supp="shallow_water_table">
-        <span><strong>Shallow water table evidence</strong> — wet patches, hand-dug wells, water-loving herbaceous plants</span>
+        <span><strong>Shallow groundwater evidence</strong> — wet patches, hand-dug wells, water-loving herbaceous plants</span>
       </label>
-      <label class="checklist-item">
-        <input type="checkbox" data-supp="dark_soil">
-        <span><strong>Dark soil colour</strong> — typically richer in organic matter, often correlates with wetter zones</span>
-      </label>
+     #
       <label class="checklist-item">
         <input type="checkbox" data-supp="shallow_soil_over_rock">
-        <span><strong>Shallow soil over fractured rock</strong> — productive in basement / fractured igneous environments</span>
+        <span><strong>Evidence of fractured underground formations</strong> — productive in basement / fractured igneous environments</span>
       </label>
     </div>
   </div>
@@ -204,8 +194,7 @@
   <div class="card">
     <h2>🗓️ 6 · Seasonal groundwater observations</h2>
     <p class="muted">
-      Observations of nearby surface or shallow groundwater features and
-      whether they persist year-round.
+      Evidence of observed nearby seasonal or perennial groundwater features.
     </p>
 
     <div class="checklist">
@@ -222,10 +211,10 @@
 
   <!-- ============== 7 · LAND USE PRESSURE ============== -->
   <div class="card">
-    <h2>🏗️ 7 · Land use within 1 km radius</h2>
+    <h2>🏗️ 7 · Land use and Cover Changes within area</h2>
     <p class="muted">
       Each item shifts the Land Use Pressure Score (LUPS). The score is
-      applied as a modifier <em>after</em> the model runs — severe
+      applied as a modifier <em>after</em> the model runs, severe
       pressure can downgrade a High prediction to Low.
     </p>
 
@@ -243,6 +232,10 @@
         <span>Urban / peri-urban development &gt; 30% impervious cover  <em class="lups-weight">−2</em></span>
       </label>
       <label class="checklist-item lups-bad">
+        <input type="checkbox" data-lups="urban_impervious_over_30pct">
+        <span>Land Degradation (erosion/gulleys)  <em class="lups-weight">−2</em></span>
+      </label>
+      <label class="checklist-item lups-bad">
         <input type="checkbox" data-lups="deforestation">
         <span>Deforestation  <em class="lups-weight">−1</em></span>
       </label>
@@ -253,6 +246,10 @@
       <label class="checklist-item lups-good">
         <input type="checkbox" data-lups="farm_dam_or_weir_within_300m">
         <span>Active farm dam or small weir within 300 m  <em class="lups-weight">+1</em></span>
+      </label>
+      <label class="checklist-item lups-good">
+        <input type="checkbox" data-lups="farm_dam_or_weir_within_300m">
+        <span>Catchment/watershed management works (gulley/erosion control)<em class="lups-weight">+2</em></span>
       </label>
     </div>
 
@@ -267,7 +264,7 @@
   <div class="card">
     <h2>🪨 8 · Notable geological features <span class="muted" style="font-weight: normal; font-size: 0.95rem;">(optional)</span></h2>
     <p class="muted">
-      Add a free-form note describing the local terrain — e.g. whether the
+      Add a free-form note describing the local terrain, e.g. whether the
       site sits on an upland, lowland, valley, or any other notable
       geological feature. Pick a suggestion or type your own.
     </p>

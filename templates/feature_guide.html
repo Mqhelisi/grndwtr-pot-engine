@@ -19,7 +19,7 @@
     {% else %}
       {% for name, kind, values in features %}
         <div class="feature-block">
-          <h3>{{ name }}
+          <h3>{{ pretty_predictor(name) }}
             {% if kind == 'ordered' %}
               <span class="pill" style="margin-left: 0.5rem; font-size: 0.7rem; vertical-align: middle;">ordered</span>
             {% else %}

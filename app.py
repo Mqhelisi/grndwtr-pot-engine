@@ -46,6 +46,7 @@ from models import db, SavedLocation, run_simple_migrations
 import ml
 import hydrogeology
 import confidence
+from timeutil import now_cat, format_cat, format_cat_iso
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +86,32 @@ def create_app() -> Flask:
     app.logger.info("ML pipeline ready: %s", ml.is_ready())
     app.logger.info("Hydrogeology ready: %s", hydrogeology.is_ready())
     app.logger.info("BGS schema detected: %s", hydrogeology.has_bgs_schema())
+
+    # Make a friendly-name lookup available to every template. The model's
+    # internal feature names are dotted (e.g. "Soil.Texture",
+    # "Natural.vegitation..tree..vigour") because that's what the trained
+    # pipeline expects — we never rename them at the Python layer because
+    # that would break the model. This map is *display only*.
+    PREDICTOR_DISPLAY_NAMES = {
+        "Soil.Texture":                     "Soil Type",
+        "Geological.Features":              "Geological Feature",
+        "Natural.vegitation..tree..vigour": "Vegetation Vigour",
+        "Natural.vegitation..tree..height": "Vegetation Height",
+        "Drainage.Density":                 "Drainage Density",
+        "Elevation":                        "Elevation",
+        "Soil.Colour":                      "Soil Colour",
+    }
+
+    def _pretty_predictor(name: str) -> str:
+        """Return the human-friendly label for a predictor, or the
+        original name if no mapping exists."""
+        if not name:
+            return name
+        return PREDICTOR_DISPLAY_NAMES.get(name, name)
+
+    @app.context_processor
+    def _inject_helpers():
+        return {"pretty_predictor": _pretty_predictor}
 
     register_routes(app)
     return app
@@ -129,7 +156,7 @@ def register_routes(app: Flask) -> None:
         return render_template(
             "report_site.html",
             loc=loc.to_dict(),
-            generated_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            generated_at=format_cat(now_cat()),
         )
 
     @app.route("/saved/<int:loc_id>/report.pdf")
@@ -138,7 +165,7 @@ def register_routes(app: Flask) -> None:
         html = render_template(
             "report_site.html",
             loc=loc.to_dict(),
-            generated_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            generated_at=format_cat(now_cat()),
             for_pdf=True,
         )
         pdf_bytes = _render_pdf_from_html(html)
@@ -156,7 +183,7 @@ def register_routes(app: Flask) -> None:
             count=len(rows) if rows else 0,
             start_str=start_str, end_str=end_str,
             start_dt=start_dt, end_dt=end_dt, error=error,
-            generated_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            generated_at=format_cat(now_cat()),
         )
 
     @app.route("/history-report.pdf")
@@ -171,7 +198,7 @@ def register_routes(app: Flask) -> None:
             rows=[r.to_dict() for r in rows], count=len(rows),
             start_str=start_str, end_str=end_str,
             start_dt=start_dt, end_dt=end_dt, error=None,
-            generated_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            generated_at=format_cat(now_cat()),
             for_pdf=True,
         )
         pdf_bytes = _render_pdf_from_html(html)
@@ -438,7 +465,7 @@ def register_routes(app: Flask) -> None:
             "override_class":   p.get("override_class"),         # optional
             "rationale":        (p.get("rationale") or "").strip(),
             "reviewer":         (p.get("reviewer")  or "").strip()[:60],
-            "reviewed_at":      datetime.utcnow().isoformat() + "Z",
+            "reviewed_at":      format_cat_iso(now_cat()),
         }
         loc.set_expert_review(review)
 

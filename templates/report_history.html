@@ -76,7 +76,7 @@
           {% set hg   = r.hydrogeology or {} %}
           <div class="history-entry">
             <h3>
-              #{{ r.id }} · {{ r.created_at[:16].replace('T', ' ') }} UTC
+              #{{ r.id }} · {{ r.created_at[:16].replace('T', ' ') }} CAT
               {% if r.label %} · {{ r.label }}{% endif %}
             </h3>
             <table class="kv kv-tight">
@@ -112,7 +112,7 @@
                 <td class="muted" style="font-size: 0.9rem;">
                   {% set vals = r.predictors.get('values', r.predictors) %}
                   {% for k, v in vals.items() %}
-                    {{ k }}: <strong>{{ v }}</strong>{{ "; " if not loop.last }}
+                    {{ pretty_predictor(k) }}: <strong>{{ v }}</strong>{{ "; " if not loop.last }}
                   {% endfor %}
                 </td>
               </tr>
